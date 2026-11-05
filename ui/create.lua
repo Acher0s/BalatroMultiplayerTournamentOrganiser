@@ -147,7 +147,7 @@ local function step_rows(key)
 		add(UI.choice("Game type", "gameMode", "gameMode"))
 		add(UI.choice("Ruleset", "ruleset", "ruleset"))
 		add(UI.choice("Series", "bestOf", nil, { "How many games a match has:", "best of 3 = first to win 2." }))
-		add(UI.choice("Decks & stakes", "deckKind", nil, { "Unset: players set the deck and stake", "themselves in the lobby. One deck:", "everyone plays the same deck and", "stake. Ban and pick: players take", "turns banning from a pool of decks", "and stakes." }))
+		add(UI.choice("Decks & stakes", "deckKind", nil, { "One deck: everyone plays the same", "deck and stake. Ban and pick: players", "take turns banning from a pool of", "decks and stakes; the last one left", "is played." }))
 		if F.uses(form, "deck") then
 			add(UI.choice("Deck", "deck", "deck"))
 			add(UI.choice("Stake", "stake", "stake"))

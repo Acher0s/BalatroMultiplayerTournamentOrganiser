@@ -58,6 +58,10 @@ local broken, n = T.to_form({ kind = T.KIND, version = 1, form = { maxPlayers = 
 check("broken fields skipped", broken.maxPlayers == 16 and broken.format == "swiss" and broken.draftStakes[1] == 1 and n == 3, n)
 check("broken round cleaned", broken.rounds.R1.bestOf == nil and broken.rounds.R1.deck == "b_red" and broken.rounds[5] == nil)
 
+-- An old template's "Unset" decks load as ban and pick.
+local old = T.to_form({ kind = T.KIND, version = 1, form = { name = "Old", deckKind = "any" } }, NOW)
+check("old unset", old.deckKind == "draft")
+
 -- File names.
 check("file name", T.file_name("Friday Weekly!") == "Friday Weekly.json", T.file_name("Friday Weekly!"))
 check("empty file name", T.file_name("  ??? ") == "template.json")

@@ -24,7 +24,7 @@ local problems = F.problems(form, NOW)
 check("name missing", #problems == 1 and problems[1]:find("name"), problems[1])
 form.name = "  Friday Cup  "
 check("fine now", #F.problems(form, NOW) == 0)
-check("problems per step", #F.problems({ name = "", description = "", startsAt = NOW + HOUR, format = "swiss", maxPlayers = 8, deckKind = "any", draftStakes = {} }, NOW, "format") == 0)
+check("problems per step", #F.problems({ name = "", description = "", startsAt = NOW + HOUR, format = "swiss", maxPlayers = 8, deckKind = "draft", draftStakes = { 1 } }, NOW, "format") == 0)
 
 -- Choices wrap both ways.
 F.step(form, "format", -1)
@@ -78,7 +78,9 @@ local p = F.payload(form)
 check("name trimmed", p.name == "Friday Cup", p.name)
 check("single elim no options", p.formatOptions == nil)
 check("check-in", p.checkInMinutes == 30)
-check("defaults", p.rounds.defaults.gameMode == "pvp_nemesis" and p.rounds.defaults.bestOf == 3 and p.rounds.defaults.deck == nil)
+check("defaults", p.rounds.defaults.gameMode == "pvp_nemesis" and p.rounds.defaults.bestOf == 3)
+-- By default: ban and pick from every deck on White to Gold.
+check("default decks", p.rounds.defaults.deck.kind == "draft" and #p.rounds.defaults.deck.stakes == 8)
 check("live event options", p.timetable.preset == "live_event" and p.timetable.options.readyUpMinutes == 10 and p.timetable.options.breakMinutes == 0)
 
 form.checkInMinutes = false

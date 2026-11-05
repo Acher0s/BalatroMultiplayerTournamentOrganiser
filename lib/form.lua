@@ -34,7 +34,6 @@ F.CHOICES = {
 	},
 	bestOf = { { 1, "Best of 1" }, { 3, "Best of 3" }, { 5, "Best of 5" }, { 7, "Best of 7" } },
 	deckKind = {
-		{ "any", "Unset (set in the lobby)" },
 		{ "locked", "Everyone plays one deck" },
 		{ "draft", "Ban and pick from a pool" },
 	},
@@ -305,10 +304,11 @@ function F.new(now_ms)
 		gameMode = "pvp_nemesis",
 		ruleset = "ruleset_mp_balanced",
 		bestOf = 3,
-		deckKind = "any",
+		-- Ban and pick from every deck on White to Gold, like matchmaking.
+		deckKind = "draft",
 		deck = "b_red",
 		stake = 1,
-		draftStakes = { 1 },
+		draftStakes = { 1, 2, 3, 4, 5, 6, 7, 8 },
 		banOrder = "lower_seed_first",
 		-- Locked to the Cocktail: its mix.
 		cocktail = new_recipe(),

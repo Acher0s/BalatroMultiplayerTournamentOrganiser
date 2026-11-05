@@ -185,6 +185,10 @@ function T.to_form(template, now_ms)
 			end
 		end
 	end
+	-- A deck rule this version doesn't have (the old "Unset"): ban and pick.
+	if form.deckKind ~= "locked" and form.deckKind ~= "draft" then
+		form.deckKind = "draft"
+	end
 	-- The time of day on the next day it still can be.
 	local today = os.date("*t", math.floor(now_ms / 1000))
 	for days = 0, 2 do
