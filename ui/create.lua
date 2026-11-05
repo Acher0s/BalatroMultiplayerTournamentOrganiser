@@ -128,6 +128,13 @@ local function step_rows(key)
 		if UI.may_create_official() then
 			add(UI.switch("Official", "official", { "Shown with a gold OFFICIAL badge", "and listed first. Only players with", "the right to host them see this." }))
 		end
+		add(UI.switch("Ranked profile only", "requireRanked", {
+			"Players need their ranked profile, as",
+			"for ranked matchmaking: Balatro started",
+			"through the launcher with ranked mods.",
+			"Checked when they sign up, check in",
+			"and ready up; they're warned early.",
+		}))
 		add(UI.choice("Players", "maxPlayers", nil, { "The most players who can join.", "Anyone after that goes on a waitlist;", "you move them in from the manage page." }))
 		for _, r in ipairs(start_row()) do
 			add(r)
@@ -216,7 +223,7 @@ local function step_rows(key)
 			add(UI.row(label, { TUI().text(value, TUI().TEXT) }))
 		end
 		line("Name", form.name ~= "" and form.name or "-")
-		line("Who can join", F.label(form, "visibility") .. (form.official and ", OFFICIAL" or ""))
+		line("Who can join", F.label(form, "visibility") .. (form.official and ", OFFICIAL" or "") .. (form.requireRanked and ", ranked profile only" or ""))
 		line("Players", "up to " .. form.maxPlayers)
 		line("Starts", TT().format_local(form.startsAt) .. "  (" .. F.label(form, "checkInMinutes"):lower() .. ")")
 		local format = F.label(form, "format")

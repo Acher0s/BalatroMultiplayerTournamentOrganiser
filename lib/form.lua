@@ -293,6 +293,8 @@ function F.new(now_ms)
 		description = "",
 		visibility = "public",
 		official = false,
+		-- Players need their ranked profile (as for ranked matchmaking).
+		requireRanked = false,
 		maxPlayers = 16,
 		startsAt = start,
 		checkInMinutes = 30,
@@ -785,6 +787,7 @@ function F.payload(form, decks)
 		description = form.description or "",
 		visibility = form.visibility,
 		official = form.official,
+		requireRanked = form.requireRanked == true,
 		format = form.format,
 		-- Left out when empty: an empty Lua table may encode as [] (not an object).
 		formatOptions = next(format_options) and format_options or nil,

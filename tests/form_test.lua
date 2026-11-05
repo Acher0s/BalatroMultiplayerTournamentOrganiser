@@ -78,6 +78,10 @@ local p = F.payload(form)
 check("name trimmed", p.name == "Friday Cup", p.name)
 check("single elim no options", p.formatOptions == nil)
 check("check-in", p.checkInMinutes == 30)
+check("ranked off", p.requireRanked == false)
+form.requireRanked = true
+check("ranked on", F.payload(form).requireRanked == true)
+form.requireRanked = false
 check("defaults", p.rounds.defaults.gameMode == "pvp_nemesis" and p.rounds.defaults.bestOf == 3)
 -- By default: ban and pick from every deck on White to Gold.
 check("default decks", p.rounds.defaults.deck.kind == "draft" and #p.rounds.defaults.deck.stakes == 8)

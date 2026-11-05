@@ -34,6 +34,7 @@ local FIELDS = {
 	description = { "string" },
 	visibility = { "string" },
 	official = { "boolean" },
+	requireRanked = { "boolean" },
 	maxPlayers = { "number" },
 	checkInMinutes = { "number", "false" },
 	format = { "string" },
