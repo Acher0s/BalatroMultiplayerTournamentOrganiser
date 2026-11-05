@@ -61,6 +61,7 @@ local FIELDS = {
 	minute = { "string" },
 	pm = { "boolean" },
 	rounds = { "rounds" },
+	timing = { "rounds" },
 }
 
 local function is_list_of(v, kind)
@@ -116,6 +117,23 @@ function T.from_form(form, name)
 	return { kind = T.KIND, version = T.VERSION, name = name or form.name, form = saved }
 end
 
+-- A timetable change as saved.
+local TIMING_FIELDS = { breakBefore = "number", start = "string", play = "string", readyUpMinutes = "number", windowMinutes = "number", onward = "boolean", atDay = "number", atHour = "string", atMinute = "string", atPm = "boolean" }
+
+local function clean_timing(t)
+	if type(t) ~= "table" then
+		return nil
+	end
+	local out = {}
+	for key, kind in pairs(TIMING_FIELDS) do
+		local v = t[key]
+		if v == false or type(v) == kind then
+			out[key] = v
+		end
+	end
+	return out
+end
+
 -- A round as saved: only the fields a round has.
 local ROUND_FIELDS = { "gameMode", "ruleset", "bestOf", "deckKind", "deck", "stake", "draftStakes", "banOrder", "cocktail", "poolDecks", "poolCocktails" }
 
@@ -149,12 +167,13 @@ function T.to_form(template, now_ms)
 	local skipped = 0
 	for key, kinds in pairs(FIELDS) do
 		local v = template.form[key]
-		if key == "rounds" then
+		if key == "rounds" or key == "timing" then
 			if type(v) == "table" then
-				form.rounds = {}
+				local clean = key == "rounds" and clean_round or clean_timing
+				form[key] = {}
 				for rk, r in pairs(v) do
 					if type(rk) == "string" then
-						form.rounds[rk] = clean_round(r)
+						form[key][rk] = clean(r)
 					end
 				end
 			end

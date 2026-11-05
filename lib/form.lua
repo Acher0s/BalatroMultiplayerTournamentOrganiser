@@ -34,7 +34,7 @@ F.CHOICES = {
 	},
 	bestOf = { { 1, "Best of 1" }, { 3, "Best of 3" }, { 5, "Best of 5" }, { 7, "Best of 7" } },
 	deckKind = {
-		{ "any", "Players pick (lobby default)" },
+		{ "any", "Unset (set in the lobby)" },
 		{ "locked", "Everyone plays one deck" },
 		{ "draft", "Ban and pick from a pool" },
 	},
@@ -173,6 +173,45 @@ local function deck_payload(settings, decks)
 end
 F.deck_payload = deck_payload
 
+-- The description is edited as a few lines (Balatro's text boxes are one
+-- line each) and stored with a newline between them.
+F.DESC_LINES = 5
+F.DESC_LINE = 100
+
+-- A description as the editor's lines (always DESC_LINES of them). A line
+-- longer than a box is split at a space where it can be.
+function F.split_description(text)
+	local lines = {}
+	for line in (tostring(text or "") .. "\n"):gmatch("([^\n]*)\n") do
+		while #line > F.DESC_LINE do
+			local cut = line:sub(1, F.DESC_LINE):match("^.*() ") or (F.DESC_LINE + 1)
+			lines[#lines + 1] = line:sub(1, cut - 1)
+			line = line:sub(cut):gsub("^ ", "")
+		end
+		lines[#lines + 1] = line
+	end
+	local out = {}
+	for i = 1, F.DESC_LINES do
+		out[i] = lines[i] or ""
+	end
+	return out
+end
+
+-- The editor's lines as the description: trailing empty lines dropped.
+function F.join_description(lines)
+	local last = 0
+	for i = 1, F.DESC_LINES do
+		if (lines[i] or ""):match("%S") then
+			last = i
+		end
+	end
+	local out = {}
+	for i = 1, last do
+		out[i] = (lines[i] or ""):gsub("%s+$", "")
+	end
+	return table.concat(out, "\n")
+end
+
 -- The game types a 1v1 bracket can play (key -> label comes from PvP).
 F.GAME_MODES = { "pvp_nemesis", "pvp_smallworld", "pvp_royale", "pvp_experimental" }
 
@@ -283,6 +322,8 @@ function F.new(now_ms)
 		-- Round by round: "R1", "R2"... and named rounds ("FINAL"...), each a
 		-- table of what differs from the defaults (see F.round_override).
 		rounds = {},
+		-- The timetable round by round, keyed the same (see F.timing_override).
+		timing = {},
 	}
 	F.split_start(form)
 	return form
@@ -496,7 +537,7 @@ function F.describe(settings, form, names, all)
 		elseif settings.deckKind == "draft" then
 			parts[#parts + 1] = "ban and pick (" .. F.pool_text(settings) .. ")"
 		elseif all then
-			parts[#parts + 1] = "players pick decks"
+			parts[#parts + 1] = "decks unset"
 		end
 	end
 	if differs("bestOf") then
@@ -521,6 +562,121 @@ function F.overrides(form, decks)
 		end
 	end
 	return any and out or nil
+end
+
+-- Timetable round by round -----------------------------------------------
+
+-- Longer than a couple of hours: continue at a date and time instead.
+F.TIMING = {
+	breakBefore = { { false, "No break" }, { 5, "5 min" }, { 10, "10 min" }, { 15, "15 min" }, { 30, "30 min" }, { 60, "1 hour" }, { 120, "2 hours" } },
+	start = { { false, "After the rounds before it" }, { "manual", "When I press START ROUND" }, { "at", "At a date and time" } },
+	play = { { false, "Same as the timetable" }, { "live", "Live, with a ready-up" }, { "window", "By a deadline" } },
+}
+
+-- Days after the start day a round can continue on.
+F.AT_DAYS_MAX = 14
+
+-- When a round set to continue "at a date and time" continues (epoch ms), or
+-- nil and why not: t.atDay days after the tournament's start day, at
+-- t.atHour:t.atMinute AM/PM, local time.
+function F.round_start_at(t, form)
+	local hour, minute = tonumber(t.atHour or ""), tonumber(t.atMinute or "")
+	if not hour or hour ~= math.floor(hour) or hour < 1 or hour > 12 then
+		return nil, "The hour must be 1-12."
+	end
+	if not minute or minute ~= math.floor(minute) or minute < 0 or minute > 59 then
+		return nil, "The minutes must be 0-59."
+	end
+	local d = form.date or os.date("*t", math.floor(form.startsAt / 1000))
+	return os.time({ year = d.year, month = d.month, day = d.day + (t.atDay or 0), hour = hour % 12 + (t.atPm and 12 or 0), min = minute, sec = 0 }) * 1000
+end
+
+-- A round's timetable change for the server, or nil when it changes nothing.
+-- form: for a round that continues at a date and time.
+function F.timing_override(t, form)
+	if not t then
+		return nil
+	end
+	local out, any = {}, false
+	if t.start == "at" and form then
+		out.startAt = F.round_start_at(t, form)
+		any = out.startAt ~= nil
+	elseif t.start == "manual" then
+		out.manualStart = true
+		any = true
+	elseif t.breakBefore then
+		out.breakBefore = t.breakBefore
+		any = true
+	end
+	if t.play == "live" then
+		out.play = { kind = "live", readyUpMinutes = t.readyUpMinutes or 10 }
+		any = true
+	elseif t.play == "window" then
+		out.play = { kind = "window", durationMinutes = t.windowMinutes or 24 * 60 }
+		any = true
+	end
+	if any and t.onward and out.play then
+		out.onward = true
+	end
+	return any and out or nil
+end
+
+-- The timetable changes for the server, or nil when none.
+function F.timing_payload(form)
+	local out, any = {}, false
+	for _, key in ipairs(F.round_keys(form)) do
+		local o = F.timing_override(form.timing and form.timing[key], form)
+		if o then
+			out[key] = o
+			any = true
+		end
+	end
+	return any and out or nil
+end
+
+local WEEKDAYS = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" }
+local MONTHS = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" }
+
+-- "Sat, Nov 14, 8:00 PM"
+function F.when_text(ms)
+	local t = os.date("*t", math.floor(ms / 1000))
+	local hour = t.hour % 12
+	return string.format("%s, %s %d, %d:%02d %s", WEEKDAYS[t.wday], MONTHS[t.month], t.day, hour == 0 and 12 or hour, t.min, t.hour < 12 and "AM" or "PM")
+end
+
+-- The days a round can continue on: { day offset, "Sat, Nov 14" }.
+function F.at_days(form)
+	local d = form.date or os.date("*t", math.floor(form.startsAt / 1000))
+	local out = {}
+	for i = 0, F.AT_DAYS_MAX do
+		local t = os.date("*t", os.time({ year = d.year, month = d.month, day = d.day + i, hour = 12 }))
+		out[#out + 1] = { i, string.format("%s, %s %d%s", WEEKDAYS[t.wday], MONTHS[t.month], t.day, i == 0 and " (start day)" or "") }
+	end
+	return out
+end
+
+-- One line for a round's timetable change.
+function F.describe_timing(t, form)
+	if not F.timing_override(t, form) then
+		return "as the timetable"
+	end
+	local parts = {}
+	if t.start == "at" and form then
+		parts[#parts + 1] = "continues " .. F.when_text(F.round_start_at(t, form))
+	elseif t.start == "manual" then
+		parts[#parts + 1] = "you start it"
+	elseif t.breakBefore then
+		parts[#parts + 1] = F.label(t, "breakBefore", F.TIMING.breakBefore) .. " break first"
+	end
+	if t.play == "live" then
+		parts[#parts + 1] = "live, " .. F.label(t, "readyUpMinutes") .. " to ready up"
+	elseif t.play == "window" then
+		parts[#parts + 1] = "by a deadline, " .. F.label(t, "windowMinutes")
+	end
+	if t.onward and t.play then
+		parts[#parts + 1] = "and every later round"
+	end
+	return table.concat(parts, "; ")
 end
 
 -- What the format needs that the others don't.
@@ -583,6 +739,15 @@ function F.problems(form, now_ms, step)
 		return not F.uses_cocktail(settings) or #((settings.cocktail or {}).decks or {}) > 0
 	end
 	check("games", mixed(form), "Mix 1 to 3 decks for the Cocktail (MIX).")
+	-- A round that continues at a date and time: a real time, after the start.
+	for _, key in ipairs(F.round_keys(form)) do
+		local t = form.timing and form.timing[key]
+		if t and t.start == "at" then
+			local at, why = F.round_start_at(t, form)
+			check("schedule", at ~= nil, why and ("A round's start: " .. why) or nil)
+			check("schedule", not at or at > (form.startsAt or 0), "A round can't continue before the tournament starts.")
+		end
+	end
 	for _, round in pairs(form.rounds or {}) do
 		if round.deckKind == "draft" and F.pool_problem(round) then
 			check("rounds", false, "A round's pool: " .. F.pool_problem(round))
@@ -629,7 +794,7 @@ function F.payload(form, decks)
 		checkInMinutes = form.checkInMinutes or nil,
 		seeding = { kind = form.seeding },
 		rounds = { defaults = defaults, overrides = F.overrides(form, decks) },
-		timetable = { kind = "preset", preset = form.preset, options = options },
+		timetable = { kind = "preset", preset = form.preset, options = options, rounds = F.timing_payload(form) },
 	}
 end
 

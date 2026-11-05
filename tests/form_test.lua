@@ -124,6 +124,16 @@ form.preset = "live_fixed_rounds"
 o = F.payload(form).timetable.options
 check("fixed rounds", o.readyUpMinutes == 10 and o.breakMinutes == nil)
 
+-- The description editor's lines.
+local lines = F.split_description("Prizes: 50k\nRules in our Discord")
+check("split lines", #lines == F.DESC_LINES and lines[1] == "Prizes: 50k" and lines[2] == "Rules in our Discord" and lines[3] == "")
+check("join", F.join_description(lines) == "Prizes: 50k\nRules in our Discord")
+check("join drops empty end", F.join_description({ "a", "", "b", "", "" }) == "a\n\nb")
+local long = string.rep("word ", 30) -- 150 characters
+local split = F.split_description(long)
+check("long split at a space", #split[1] <= F.DESC_LINE and split[2] ~= "" and not split[2]:match("^ "), split[2])
+check("empty", F.join_description(F.split_description("")) == "")
+
 if failures > 0 then
 	print(failures .. " failure(s)")
 	os.exit(1)

@@ -101,6 +101,13 @@ local function actions(view)
 	if status == "registration" or status == "check_in" then
 		add(page.confirm == "start" and "SURE? START" or "START NOW", "tom_manage_do", { what = "start" }, G.C.BLUE)
 	end
+	-- Testing on a Dev server (the MultiplayerDev mod): fill the free spots
+	-- with bots. The server refuses this anywhere else.
+	local dev = SMODS.Mods and SMODS.Mods.MultiplayerDev and SMODS.Mods.MultiplayerDev.can_load ~= false
+	local free = (s.maxPlayers or 0) - (s.players or 0)
+	if dev and free > 0 and (status == "draft" or status == "registration" or status == "check_in") then
+		add("ADD BOTS", "tom_manage_do", { what = "bots", count = free }, G.C.UI.BACKGROUND_INACTIVE, 2.0)
+	end
 	if status == "running" then
 		if view.paused then
 			add("RESUME", "tom_manage_do", { what = "resume" }, G.C.GREEN)
@@ -453,6 +460,8 @@ G.FUNCS.tom_manage_do = function(e)
 		act("tournament_round_start", {}, "The next round has started.")
 	elseif what == "cancel" and confirmed("cancel") then
 		act("tournament_cancel", {}, "Cancelled.")
+	elseif what == "bots" then
+		act("tournament_dev_fill", { count = e.config.ref_table.count }, "Added " .. e.config.ref_table.count .. " bots.")
 	elseif what == "bracket" then
 		PVP.open_tournament_bracket(page.id)
 	end

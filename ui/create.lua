@@ -114,7 +114,16 @@ local function step_rows(key)
 	end
 	if key == "basics" then
 		add(UI.input("Name", "tom_create_name", "name", { prompt = "Tournament name", max_length = 48 }))
-		add(UI.input("Description", "tom_create_desc", "description", { prompt = "Optional: prizes, rules, Discord link...", max_length = 100 }))
+		-- The description is edited in its own overlay (several lines).
+		local desc = (form.description or ""):gsub("\n", "  ")
+		if #desc > 46 then
+			desc = desc:sub(1, 45) .. "..."
+		end
+		add(UI.row("Description", {
+			TUI().button("EDIT", "tom_create_desc_edit", nil, G.C.BLUE, 1.4, 0.3),
+			TUI().spacer(0.1),
+			TUI().text(desc ~= "" and desc or "Optional: prizes, rules, Discord link...", TUI().SMALL, desc ~= "" and G.C.UI.TEXT_LIGHT or G.C.UI.TEXT_INACTIVE),
+		}, { "Shown on the tournament's DETAILS.", "Up to " .. (F.DESC_LINES * F.DESC_LINE) .. " characters, over " .. F.DESC_LINES .. " lines." }))
 		add(UI.choice("Who can join", "visibility", nil, { "Public: listed in Browse for everyone.", "Private: hidden; players join with", "the invite code on the manage page." }))
 		if UI.may_create_official() then
 			add(UI.switch("Official", "official", { "Shown with a gold OFFICIAL badge", "and listed first. Only players with", "the right to host them see this." }))
@@ -138,7 +147,7 @@ local function step_rows(key)
 		add(UI.choice("Game type", "gameMode", "gameMode"))
 		add(UI.choice("Ruleset", "ruleset", "ruleset"))
 		add(UI.choice("Series", "bestOf", nil, { "How many games a match has:", "best of 3 = first to win 2." }))
-		add(UI.choice("Decks & stakes", "deckKind", nil, { "Players pick: the lobby's usual deck", "choice. One deck: everyone plays the", "same deck and stake. Ban and pick:", "players take turns banning from a", "pool of decks and stakes." }))
+		add(UI.choice("Decks & stakes", "deckKind", nil, { "Unset: players set the deck and stake", "themselves in the lobby. One deck:", "everyone plays the same deck and", "stake. Ban and pick: players take", "turns banning from a pool of decks", "and stakes." }))
 		if F.uses(form, "deck") then
 			add(UI.choice("Deck", "deck", "deck"))
 			add(UI.choice("Stake", "stake", "stake"))
@@ -189,6 +198,18 @@ local function step_rows(key)
 		if F.uses(form, "windowMinutes") then
 			add(UI.choice("Time per round", "windowMinutes", nil, { "Players arrange a time themselves", "and play before the round's deadline." }))
 		end
+		local context = {
+			form = form,
+			lists = wizard.lists,
+			rebuild = function()
+				if wizard.el then
+					wizard.el:update()
+				end
+			end,
+		}
+		for _, r in ipairs(TOM.TimingStep.rows(context)) do
+			add(r)
+		end
 	elseif key == "review" then
 		local lists = wizard.lists
 		local function line(label, value)
@@ -220,7 +241,13 @@ local function step_rows(key)
 			end
 		end
 		line("Rounds", #changed == 0 and "all play the defaults" or ("changed: " .. table.concat(changed, ", ")))
-		line("Timetable", F.label(form, "preset"))
+		local timing = {}
+		for _, k in ipairs(F.round_keys(form)) do
+			if F.timing_override(form.timing[k], form) then
+				timing[#timing + 1] = k:match("^R(%d+)$") and ("round " .. k:sub(2)) or F.named_label(form.format, k):lower()
+			end
+		end
+		line("Timetable", F.label(form, "preset") .. (#timing > 0 and ("; changed: " .. table.concat(timing, ", ")) or ""))
 		add(UI.note("Registration opens as soon as you create it. You can still cancel it."))
 	end
 	return rows
@@ -323,6 +350,7 @@ MPAPI.on_loaded(function()
 		dispose = function(self)
 			wizard.active = false
 			TOM.RoundsStep.dispose()
+			TOM.TimingStep.dispose()
 		end,
 	})
 end)
@@ -342,6 +370,62 @@ local function rebuild()
 	if wizard.el then
 		wizard.el:update()
 	end
+end
+
+-- The description editor: one text box per line.
+local desc_edit = nil -- { line1..lineN } while open
+
+G.FUNCS.tom_create_desc_edit = function()
+	if not wizard.form then
+		return
+	end
+	desc_edit = {}
+	for i, line in ipairs(F.split_description(wizard.form.description)) do
+		desc_edit["line" .. i] = line
+	end
+	UI.target = { form = desc_edit, lists = {}, on_change = function() end }
+	local rows = {
+		{ n = G.UIT.R, config = { align = "cm", padding = 0.08 }, nodes = { TUI().text("DESCRIPTION", 0.45, G.C.PURPLE) } },
+		{ n = G.UIT.R, config = { align = "cm", padding = 0.02 }, nodes = { TUI().text("Up to " .. F.DESC_LINES .. " lines of " .. F.DESC_LINE .. " characters. Ctrl+V pastes.", TUI().SMALL, G.C.UI.TEXT_INACTIVE) } },
+	}
+	for i = 1, F.DESC_LINES do
+		rows[#rows + 1] = {
+			n = G.UIT.R,
+			config = { align = "cm", padding = 0.03 },
+			nodes = { UI.text_box("tom_create_desc_" .. i, "line" .. i, { max_length = F.DESC_LINE, w = 11.5, text_scale = 0.28, prompt = i == 1 and "Prizes, rules, where to find you..." or "" }) },
+		}
+	end
+	rows[#rows + 1] = TUI().hbox({
+		TUI().button("CLEAR", "tom_create_desc_clear", nil, G.C.RED, 1.8),
+		TUI().spacer(6.0),
+		TUI().button("DONE", "tom_create_desc_done", nil, G.C.GREEN, 2.2),
+	}, "cm", 0.1)
+	G.FUNCS.overlay_menu({
+		definition = create_UIBox_generic_options({
+			no_back = true,
+			contents = { { n = G.UIT.R, config = { align = "cm", padding = 0.1 }, nodes = { { n = G.UIT.C, config = { align = "cm" }, nodes = rows } } } },
+		}),
+	})
+end
+
+G.FUNCS.tom_create_desc_clear = function()
+	if wizard.form then
+		wizard.form.description = ""
+	end
+	G.FUNCS.tom_create_desc_edit()
+end
+
+G.FUNCS.tom_create_desc_done = function()
+	if desc_edit and wizard.form then
+		local lines = {}
+		for i = 1, F.DESC_LINES do
+			lines[i] = desc_edit["line" .. i] or ""
+		end
+		wizard.form.description = F.join_description(lines)
+	end
+	desc_edit = nil
+	G.FUNCS.exit_overlay_menu()
+	rebuild()
 end
 
 -- Templates (ui/templates.lua).
