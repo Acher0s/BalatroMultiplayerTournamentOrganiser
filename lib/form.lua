@@ -681,6 +681,203 @@ function F.describe_timing(t, form)
 	return table.concat(parts, "; ")
 end
 
+-- Editing an existing tournament ------------------------------------------
+
+local function list_copy(list)
+	local out = {}
+	for i, v in ipairs(list or {}) do
+		out[i] = v
+	end
+	return out
+end
+
+local function recipe_of(c)
+	if type(c) ~= "table" then
+		return F.new_recipe()
+	end
+	return { name = c.name or "", decks = list_copy(c.decks) }
+end
+
+-- Whether a deck list is every deck (then the form keeps "every deck").
+local function is_every(decks, all)
+	if not all or #decks ~= #all then
+		return false
+	end
+	local have = {}
+	for _, d in ipairs(decks) do
+		have[d] = true
+	end
+	for _, d in ipairs(all) do
+		if not have[d] then
+			return false
+		end
+	end
+	return true
+end
+
+-- A server deck rule as the form's (or a round's) deck fields, written into
+-- `into`. all: every deck (a pool of all of them reads as "every deck").
+local function deck_into(into, deck, all)
+	if type(deck) ~= "table" then
+		return
+	end
+	if deck.kind == "locked" then
+		into.deckKind, into.deck, into.stake = "locked", deck.deck, deck.stake
+		if deck.cocktail then
+			into.cocktail = recipe_of(deck.cocktail)
+		end
+	elseif deck.kind == "draft" then
+		into.deckKind = "draft"
+		local decks = list_copy(deck.decks)
+		-- Every deck reads as "every deck" (nil).
+		if #decks == 0 or is_every(decks, all) then
+			into.poolDecks = nil
+		else
+			into.poolDecks = decks
+		end
+		into.draftStakes = list_copy(deck.stakes)
+		into.banOrder = deck.banOrder
+		into.poolCocktails = {}
+		for i, c in ipairs(deck.cocktails or {}) do
+			into.poolCocktails[i] = recipe_of(c)
+		end
+	end
+end
+
+-- Days from one local date to another.
+local function days_between(a, b)
+	local ta = os.time({ year = a.year, month = a.month, day = a.day, hour = 12 })
+	local tb = os.time({ year = b.year, month = b.month, day = b.day, hour = 12 })
+	return math.floor((tb - ta) / 86400 + 0.5)
+end
+
+-- A server round-timing change as the form's.
+local function timing_of(t, start_date)
+	local out = {}
+	if t.breakBefore then
+		out.breakBefore = t.breakBefore
+	end
+	if t.startAt then
+		local at = os.date("*t", math.floor(t.startAt / 1000))
+		local hour = at.hour % 12
+		out.start = "at"
+		out.atDay = math.max(0, days_between(start_date, at))
+		out.atHour = tostring(hour == 0 and 12 or hour)
+		out.atMinute = string.format("%02d", at.min)
+		out.atPm = at.hour >= 12
+	elseif t.manualStart then
+		out.start = "manual"
+	end
+	if type(t.play) == "table" then
+		out.play = t.play.kind
+		if t.play.kind == "live" then
+			out.readyUpMinutes = t.play.readyUpMinutes
+		else
+			out.windowMinutes = t.play.durationMinutes
+		end
+		out.onward = t.onward == true
+	end
+	return out
+end
+
+-- The wizard's form for an existing tournament (its full view, from
+-- tournament_get). all: every deck PvP plays.
+function F.from_view(view, now_ms, all)
+	local s = view.summary or {}
+	local form = F.new(now_ms)
+	form.name = s.name or ""
+	form.description = view.description or ""
+	form.visibility = s.visibility or "public"
+	form.official = s.official == true
+	form.requireRanked = s.requireRanked == true
+	form.maxPlayers = s.maxPlayers or form.maxPlayers
+	form.startsAt = s.startsAt or form.startsAt
+	F.split_start(form)
+	form.checkInMinutes = s.checkInAt and math.floor((s.startsAt - s.checkInAt) / 60000 + 0.5) or false
+	form.format = s.format or form.format
+	local fo = view.formatOptions or {}
+	if fo.grandFinalReset ~= nil then
+		form.grandFinalReset = fo.grandFinalReset
+	end
+	form.groupSize = fo.groupSize or false
+	form.swissRounds = fo.swissRounds or false
+	form.seeding = view.seeding and view.seeding.kind or form.seeding
+	local d = view.rounds and view.rounds.defaults or {}
+	form.gameMode = d.gameMode or form.gameMode
+	form.ruleset = d.ruleset or form.ruleset
+	form.bestOf = d.bestOf or form.bestOf
+	deck_into(form, d.deck, all)
+	form.rounds = {}
+	for key, o in pairs(view.rounds and view.rounds.overrides or {}) do
+		local round = { gameMode = o.gameMode, ruleset = o.ruleset, bestOf = o.bestOf }
+		deck_into(round, o.deck, all)
+		form.rounds[key] = round
+	end
+	local tt = view.timetable or {}
+	if tt.kind == "preset" then
+		form.preset = tt.preset
+		local o = tt.options or {}
+		form.readyUpMinutes = o.readyUpMinutes or form.readyUpMinutes
+		form.breakMinutes = o.breakMinutes or form.breakMinutes
+		form.windowMinutes = o.windowMinutes or form.windowMinutes
+		form.timing = {}
+		for key, t in pairs(tt.rounds or {}) do
+			form.timing[key] = timing_of(t, form.date)
+		end
+	end
+	return form
+end
+
+-- Deep equality for payload values.
+local function same(a, b)
+	if type(a) ~= type(b) then
+		return false
+	end
+	if type(a) ~= "table" then
+		return a == b
+	end
+	for k, v in pairs(a) do
+		if not same(v, b[k]) then
+			return false
+		end
+	end
+	for k in pairs(b) do
+		if a[k] == nil then
+			return false
+		end
+	end
+	return true
+end
+
+-- What changed between two payloads, as a tournament_update body (top-level
+-- fields only; nil when nothing did). running: only what the server lets an
+-- organiser change after the start (name, description, round settings).
+function F.changes(before, after, running)
+	local out, any = {}, false
+	local keys = {}
+	for k in pairs(after) do
+		keys[k] = true
+	end
+	for k in pairs(before) do
+		keys[k] = true
+	end
+	local allowed = running and { name = true, description = true, rounds = true } or nil
+	-- A setting switched off is missing from `after`; say so explicitly (the
+	-- server keeps what it isn't sent).
+	local OFF = { checkInMinutes = false, formatOptions = {} }
+	for k in pairs(keys) do
+		if (not allowed or allowed[k]) and not same(before[k], after[k]) then
+			if after[k] == nil then
+				out[k] = OFF[k]
+			else
+				out[k] = after[k]
+			end
+			any = any or out[k] ~= nil
+		end
+	end
+	return any and out or nil
+end
+
 -- What the format needs that the others don't.
 function F.uses(form, option)
 	if option == "grandFinalReset" then
@@ -715,7 +912,10 @@ F.STEPS = {
 
 -- What is still wrong on a step (or, with no step, anywhere): a list of
 -- sentences, empty when fine.
-function F.problems(form, now_ms, step)
+-- opts (an edit): started = the tournament is running (its start can't
+-- change); original_start = its start, which may be close now and still stay.
+function F.problems(form, now_ms, step, opts)
+	opts = opts or {}
 	local out = {}
 	local function check(on, ok, message)
 		if (step == nil or step == on) and not ok then
@@ -731,9 +931,12 @@ function F.problems(form, now_ms, step)
 	if form.date then
 		at, why = F.sync_start(form)
 	end
-	check("basics", why == nil, why)
-	check("basics", not at or at >= now_ms + 5 * MINUTE, "The start must be at least 5 minutes away.")
-	check("basics", not at or at <= now_ms + 90 * DAY, "The start can be at most 90 days away.")
+	local start_fixed = opts.started or (opts.original_start and at == opts.original_start)
+	if not opts.started then
+		check("basics", why == nil, why)
+	end
+	check("basics", start_fixed or not at or at >= now_ms + 5 * MINUTE, "The start must be at least 5 minutes away.")
+	check("basics", start_fixed or not at or at <= now_ms + 90 * DAY, "The start can be at most 90 days away.")
 	check("format", not (form.format == "round_robin" and form.groupSize and form.groupSize > form.maxPlayers), "Groups can't be bigger than the tournament.")
 	check("games", form.deckKind ~= "draft" or F.pool_problem(form) == nil, form.deckKind == "draft" and F.pool_problem(form) or nil)
 	check("games", not (form.deckKind == "locked" and not form.deck), "Pick the deck everyone plays.")

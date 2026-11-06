@@ -7,6 +7,29 @@ local F = TOM.Form
 local UI = TOM.UI
 
 local wizard = { form = nil, step = 1, error = nil, busy = false, el = nil, lists = {}, start_note = { text = "", colour = { 1, 1, 1, 1 } } }
+-- Editing an existing tournament: { id, running, original (what it has, as
+-- a payload), start }; nil when creating.
+wizard.edit = nil
+
+-- The steps: all of them, or once running only what can still change (the
+-- name and description, and round settings).
+local function steps()
+	if not (wizard.edit and wizard.edit.running) then
+		return F.STEPS
+	end
+	local out = {}
+	for _, s in ipairs(F.STEPS) do
+		if s.key == "basics" or s.key == "rounds" or s.key == "review" then
+			out[#out + 1] = s
+		end
+	end
+	return out
+end
+
+local function problems(step_key)
+	local e = wizard.edit
+	return F.problems(wizard.form, PVP.TournamentTime.now_ms(), step_key, e and { started = e.running, original_start = e.start } or nil)
+end
 
 -- The line under the start time, from what is in the boxes right now: how
 -- long until then, or what is wrong with it. Updated a few times a second
@@ -124,6 +147,10 @@ local function step_rows(key)
 			TUI().spacer(0.1),
 			TUI().text(desc ~= "" and desc or "Optional: prizes, rules, Discord link...", TUI().SMALL, desc ~= "" and G.C.UI.TEXT_LIGHT or G.C.UI.TEXT_INACTIVE),
 		}, { "Shown on the tournament's DETAILS.", "Up to " .. (F.DESC_LINES * F.DESC_LINE) .. " characters, over " .. F.DESC_LINES .. " lines." }))
+		if wizard.edit and wizard.edit.running then
+			add(UI.note("Running: only the name, description and round settings can change."))
+			return rows
+		end
 		add(UI.choice("Who can join", "visibility", nil, { "Public: listed in Browse for everyone.", "Private: hidden; players join with", "the invite code on the manage page." }))
 		if UI.may_create_official() then
 			add(UI.switch("Official", "official", { "Shown with a gold OFFICIAL badge", "and listed first. Only players with", "the right to host them see this." }))
@@ -255,14 +282,16 @@ local function step_rows(key)
 			end
 		end
 		line("Timetable", F.label(form, "preset") .. (#timing > 0 and ("; changed: " .. table.concat(timing, ", ")) or ""))
-		add(UI.note("Registration opens as soon as you create it. You can still cancel it."))
+		if not wizard.edit then
+			add(UI.note("Registration opens as soon as you create it. You can still cancel it."))
+		end
 	end
 	return rows
 end
 
 local function step_bar()
 	local nodes = {}
-	for i, s in ipairs(F.STEPS) do
+	for i, s in ipairs(steps()) do
 		local current = i == wizard.step
 		nodes[#nodes + 1] = {
 			n = G.UIT.C,
@@ -288,15 +317,15 @@ local function build()
 		wizard.error = nil
 		wizard.el:update()
 	end }
-	local step = F.STEPS[wizard.step]
-	local last = wizard.step == #F.STEPS
+	local step = steps()[wizard.step]
+	local last = wizard.step == #steps()
 	local body = {
 		{
 			n = G.UIT.R,
 			config = { align = "cm", padding = 0.04 },
 			nodes = {
 				{ n = G.UIT.C, config = { align = "cl", minw = 3.4 }, nodes = { TUI().button("LOAD TEMPLATE", "tom_create_load_template", nil, G.C.UI.BACKGROUND_INACTIVE, 2.9, 0.28) } },
-				{ n = G.UIT.C, config = { align = "cm", minw = 4.8 }, nodes = { TUI().text("NEW TOURNAMENT", 0.45, G.C.PURPLE) } },
+				{ n = G.UIT.C, config = { align = "cm", minw = 4.8 }, nodes = { TUI().text(wizard.edit and "EDIT TOURNAMENT" or "NEW TOURNAMENT", 0.45, G.C.PURPLE) } },
 				{ n = G.UIT.C, config = { align = "cr", minw = 3.4 }, nodes = { TUI().button("SAVE TEMPLATE", "tom_create_save_template", nil, G.C.UI.BACKGROUND_INACTIVE, 2.9, 0.28) } },
 			},
 		},
@@ -304,7 +333,7 @@ local function build()
 	}
 	local form_rows = step_rows(step.key)
 	body[#body + 1] = { n = G.UIT.R, config = { align = "tm", padding = 0.1, minh = 4.6, minw = 11.6, r = 0.1, colour = mix_colours(G.C.BLACK, G.C.L_BLACK, 0.5) }, nodes = { { n = G.UIT.C, config = { align = "tl" }, nodes = form_rows } } }
-	local problems = F.problems(form, TT().now_ms(), not last and step.key or nil)
+	local problems = problems(not last and step.key or nil)
 	local message = wizard.error or (wizard.busy and "Creating...") or (last and problems[1]) or wizard.warning
 	if message then
 		body[#body + 1] = TUI().message(message, wizard.error and G.C.RED or G.C.UI.TEXT_INACTIVE)
@@ -314,7 +343,7 @@ local function build()
 		TUI().spacer(5.0),
 	}
 	if last then
-		buttons[#buttons + 1] = TUI().button("CREATE", "tom_create_submit", nil, (#problems == 0 and not wizard.busy) and G.C.GREEN or G.C.UI.BACKGROUND_INACTIVE, 2.4)
+		buttons[#buttons + 1] = TUI().button(wizard.edit and "SAVE CHANGES" or "CREATE", "tom_create_submit", nil, (#problems == 0 and not wizard.busy) and G.C.GREEN or G.C.UI.BACKGROUND_INACTIVE, 2.4)
 	else
 		buttons[#buttons + 1] = TUI().button("NEXT", "tom_create_next", nil, G.C.BLUE, 2.4)
 	end
@@ -364,6 +393,11 @@ end)
 
 -- Opens the wizard with a fresh form (or the one left half done).
 function TOM.open_create(fresh)
+	-- A form left from editing isn't a new one.
+	if wizard.edit then
+		fresh = true
+		wizard.edit = nil
+	end
 	if fresh or not wizard.form then
 		wizard.form = F.new(PVP.TournamentTime.now_ms())
 		wizard.step = 1
@@ -593,7 +627,7 @@ G.FUNCS.tom_create_goto = function(e)
 	end
 	-- Forward only past steps without problems.
 	for i = wizard.step, ref.step - 1 do
-		local problems = F.problems(wizard.form, PVP.TournamentTime.now_ms(), F.STEPS[i].key)
+		local problems = problems(steps()[i].key)
 		if #problems > 0 then
 			wizard.step, wizard.warning = i, problems[1]
 			rebuild()
@@ -605,11 +639,11 @@ G.FUNCS.tom_create_goto = function(e)
 end
 
 G.FUNCS.tom_create_next = function()
-	local problems = F.problems(wizard.form, PVP.TournamentTime.now_ms(), F.STEPS[wizard.step].key)
-	if #problems > 0 then
-		wizard.warning = problems[1]
+	local found = problems(steps()[wizard.step].key)
+	if #found > 0 then
+		wizard.warning = found[1]
 	else
-		wizard.step, wizard.warning = math.min(#F.STEPS, wizard.step + 1), nil
+		wizard.step, wizard.warning = math.min(#steps(), wizard.step + 1), nil
 	end
 	rebuild()
 end
@@ -623,9 +657,54 @@ G.FUNCS.tom_create_back = function()
 	rebuild()
 end
 
+-- Opens the wizard on an existing tournament (its full view): every step
+-- before the start, only what can still change once it runs.
+function TOM.open_edit(view)
+	local now = PVP.TournamentTime.now_ms()
+	local all = UI.decks()
+	local form = F.from_view(view, now, all)
+	F.sync_start(form)
+	wizard.form = form
+	wizard.edit = { id = view.summary.id, running = view.summary.status == "running", original = F.payload(form, all), start = form.startsAt }
+	wizard.step = 1
+	wizard.error, wizard.warning, wizard.busy = nil, nil, false
+	wizard.lists = make_lists()
+	MPAPI.pages.show("tom_create", {})
+end
+
+-- SAVE CHANGES: only what changed goes to the server.
+local function save_edit()
+	local e = wizard.edit
+	local changes = F.changes(e.original, F.payload(wizard.form, UI.decks()), e.running)
+	if not changes then
+		wizard.warning = "Nothing changed."
+		rebuild()
+		return
+	end
+	changes.id = e.id
+	wizard.busy, wizard.error = true, nil
+	rebuild()
+	PVP.Tournaments.call("tournament_update", changes, function(err)
+		wizard.busy = false
+		if err then
+			wizard.error = UI.error_text(err)
+			rebuild()
+			return
+		end
+		local id = e.id
+		wizard.form, wizard.edit = nil, nil
+		PVP.Tournaments.refresh()
+		TOM.open_manage(id, "Saved.")
+	end)
+end
+
 G.FUNCS.tom_create_submit = function()
 	local form = wizard.form
-	if wizard.busy or #F.problems(form, PVP.TournamentTime.now_ms()) > 0 then
+	if wizard.busy or #problems(nil) > 0 then
+		return
+	end
+	if wizard.edit then
+		save_edit()
 		return
 	end
 	wizard.busy, wizard.error = true, nil

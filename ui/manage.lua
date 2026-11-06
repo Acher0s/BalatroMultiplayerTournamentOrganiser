@@ -13,8 +13,8 @@ local UI = TOM.UI
 local page = { id = nil, view = nil, el = nil, active = false, message = nil, message_colour = nil, confirm = nil, order = nil, lists = {} }
 
 local REFRESH_SECONDS = 5
-local LEFT_W = 6.2
-local RIGHT_W = 7.4
+local LEFT_W = 4.8
+local RIGHT_W = 6.6
 
 local function TUI()
 	return PVP.TUI
@@ -46,8 +46,16 @@ local function load()
 			say(UI.error_text(err or "The server sent no tournament"), G.C.RED)
 			return
 		end
-		page.view = data.tournament
 		PVP.Tournaments.state.views[page.id] = data.tournament
+		-- Removed as a co-organiser (or the organiser handed it over): the
+		-- page goes; the server refuses what it would do anyway.
+		local role = data.tournament.role
+		if role ~= "organiser" and role ~= "co_organiser" then
+			page.view = nil
+			say("You don't help run this tournament any more.", G.C.ORANGE)
+			return
+		end
+		page.view = data.tournament
 		rebuild()
 	end)
 end
@@ -88,6 +96,21 @@ local function actions(view)
 	local function add(label, fn_name, ref, colour, w)
 		out[#out + 1] = TUI().button(label, fn_name, ref, colour, w or 2.4, 0.3)
 	end
+	-- Co-organisers run matches and players; the rest is the organiser's.
+	local organiser = view.role == "organiser"
+	if not organiser then
+		if status == "running" then
+			add(view.paused and "RESUME" or "PAUSE", "tom_manage_do", { what = view.paused and "resume" or "pause" }, view.paused and G.C.GREEN or G.C.ORANGE)
+			local manual = view.timetable and (view.timetable.kind == "custom" or view.timetable.preset == "live_fixed_rounds")
+			if manual then
+				add("START ROUND", "tom_manage_do", { what = "round" }, G.C.BLUE)
+			end
+		end
+		if view.bracket then
+			add("BRACKET", "tom_manage_do", { what = "bracket" }, G.C.BLUE, 2.0)
+		end
+		return out
+	end
 	if status == "draft" then
 		add("OPEN REGISTRATION", "tom_manage_do", { what = "open" }, G.C.GREEN, 3.4)
 	end
@@ -119,8 +142,17 @@ local function actions(view)
 			add("START ROUND", "tom_manage_do", { what = "round" }, G.C.BLUE)
 		end
 	end
+	-- Change settings: everything before the start, round settings after.
+	if status == "draft" or status == "registration" or status == "check_in" then
+		add("EDIT", "tom_manage_do", { what = "edit" }, G.C.PURPLE, 1.6)
+	elseif status == "running" then
+		add("EDIT ROUNDS", "tom_manage_do", { what = "edit" }, G.C.PURPLE, 2.4)
+	end
 	if view.bracket then
 		add("BRACKET", "tom_manage_do", { what = "bracket" }, G.C.BLUE, 2.0)
+	end
+	if status ~= "finished" and status ~= "cancelled" then
+		add("CO-ORGANISERS", "tom_manage_do", { what = "coorg" }, G.C.UI.BACKGROUND_INACTIVE, 2.8)
 	end
 	if status ~= "finished" and status ~= "cancelled" then
 		add(page.confirm == "cancel" and "SURE? CANCEL IT" or "CANCEL", "tom_manage_do", { what = "cancel" }, G.C.RED, page.confirm == "cancel" and 3.2 or 2.0)
@@ -164,7 +196,7 @@ local function player_items()
 	end
 	local status = view.summary.status
 	local before = status == "draft" or status == "registration" or status == "check_in"
-	local manual = before and view.seeding and view.seeding.kind == "manual"
+	local manual = before and view.seeding and view.seeding.kind == "manual" and view.role == "organiser"
 	if manual then
 		items[#items + 1] = { heading = "SEEDING ORDER (top = seed 1)" }
 		local by_id = {}
@@ -190,7 +222,7 @@ local function player_items()
 			if status == "check_in" then
 				bits[#bits + 1] = e.checkedIn and "in" or "not in"
 			end
-			local text = short(e.name, 16) .. (#bits > 0 and ("  " .. table.concat(bits, "  ")) or "")
+			local text = short(e.name, 12) .. (#bits > 0 and ("  " .. table.concat(bits, "  ")) or "")
 			items[#items + 1] = { text = text, colour = e.dropped and G.C.UI.TEXT_INACTIVE or nil, remove = not e.dropped and status ~= "finished" and status ~= "cancelled" and e.id or nil, drop = status == "running" }
 		end
 	end
@@ -272,31 +304,41 @@ end
 
 local function match_row(item)
 	local m = item.match
-	local label = string.format("%s%d  %s %d-%d %s", ROUND[m.stage] or m.stage, m.round, short(name_of(m.players[1]), 10), m.wins and m.wins[1] or 0, m.wins and m.wins[2] or 0, short(name_of(m.players[2]), 10))
+	-- Two short lines: who plays, then the score and what is happening.
+	local who = string.format("%s%d  %s vs %s", ROUND[m.stage] or m.stage, m.round, short(name_of(m.players[1]), 9), short(name_of(m.players[2]), 9))
+	local how = string.format("%d-%d  %s", m.wins and m.wins[1] or 0, m.wins and m.wins[2] or 0, item.state)
 	local function win(side)
 		local p = m.players[side]
 		local key = "win:" .. m.id .. ":" .. side
-		local text = page.confirm == key and "SURE?" or (short(name_of(p), 7) .. " WINS")
-		return { n = G.UIT.C, config = { align = "cm", padding = 0.02 }, nodes = { TUI().button(text, "tom_manage_result", { match = m.id, side = side }, G.C.UI.BACKGROUND_INACTIVE, 1.6, 0.24) } }
+		local text = page.confirm == key and "SURE?" or (short(name_of(p), 6) .. " WINS")
+		return { n = G.UIT.C, config = { align = "cm", padding = 0.02 }, nodes = { TUI().button(text, "tom_manage_result", { match = m.id, side = side }, G.C.UI.BACKGROUND_INACTIVE, 1.35, 0.22) } }
 	end
+	-- The buttons on one row: either player wins, or ten more minutes.
 	return {
 		n = G.UIT.R,
-		config = { align = "cm", minh = 0.82, padding = 0.02 },
+		config = { align = "cm", minh = 0.82 },
 		nodes = {
 			{
 				n = G.UIT.C,
-				config = { align = "cl", minw = RIGHT_W - 3.6 },
+				config = { align = "cl", minw = RIGHT_W - 3.75 },
 				nodes = {
-					{ n = G.UIT.R, config = { align = "cl" }, nodes = { TUI().text(label, TUI().SMALL) } },
-					{ n = G.UIT.R, config = { align = "cl" }, nodes = { TUI().text(item.state, TUI().SMALL, item.urgent and G.C.RED or G.C.UI.TEXT_INACTIVE) } },
+					{ n = G.UIT.R, config = { align = "cl" }, nodes = { TUI().text(who, 0.26) } },
+					{ n = G.UIT.R, config = { align = "cl" }, nodes = { TUI().text(how, 0.24, item.urgent and G.C.RED or G.C.UI.TEXT_INACTIVE) } },
 				},
 			},
 			{
 				n = G.UIT.C,
-				config = { align = "cr", minw = 3.6 },
+				config = { align = "cr", minw = 3.75 },
 				nodes = {
-					{ n = G.UIT.R, config = { align = "cr" }, nodes = { win(1), win(2) } },
-					{ n = G.UIT.R, config = { align = "cr" }, nodes = { { n = G.UIT.C, config = { align = "cm", padding = 0.02 }, nodes = { TUI().button("+10 MIN", "tom_manage_extend", { match = m.id }, G.C.UI.BACKGROUND_INACTIVE, 1.6, 0.24) } } } },
+					{
+						n = G.UIT.R,
+						config = { align = "cr" },
+						nodes = {
+							win(1),
+							win(2),
+							{ n = G.UIT.C, config = { align = "cm", padding = 0.02 }, nodes = { TUI().button("+10M", "tom_manage_extend", { match = m.id }, G.C.UI.BACKGROUND_INACTIVE, 0.8, 0.22) } },
+						},
+					},
 				},
 			},
 		},
@@ -336,7 +378,14 @@ local function build()
 	for _, b in ipairs(actions(view)) do
 		buttons[#buttons + 1] = b
 	end
-	body[#body + 1] = TUI().hbox(buttons, "cm", 0.04)
+	-- At most four to a row, so they fit the panel.
+	for first = 1, #buttons, 4 do
+		local row = {}
+		for i = first, math.min(#buttons, first + 3) do
+			row[#row + 1] = buttons[i]
+		end
+		body[#body + 1] = TUI().hbox(row, "cm", 0.04)
+	end
 	if page.message then
 		body[#body + 1] = TUI().message(page.message, page.message_colour)
 	end
@@ -344,7 +393,7 @@ local function build()
 	-- each rebuild takes a fresh node from them.
 	local columns = {}
 	columns[#columns + 1] = { n = G.UIT.C, config = { align = "tm", padding = 0.06, r = 0.1, colour = mix_colours(G.C.BLACK, G.C.L_BLACK, 0.5) }, nodes = { page.lists.players.el.node } }
-	local seeding_manual = view.seeding and view.seeding.kind == "manual" and (view.summary.status == "registration" or view.summary.status == "check_in" or view.summary.status == "draft")
+	local seeding_manual = view.role == "organiser" and view.seeding and view.seeding.kind == "manual" and (view.summary.status == "registration" or view.summary.status == "check_in" or view.summary.status == "draft")
 	if view.summary.status == "running" then
 		columns[#columns + 1] = TUI().spacer(0.15)
 		columns[#columns + 1] = {
@@ -401,7 +450,7 @@ MPAPI.on_loaded(function()
 			end
 			page.lists = {
 				players = PVP.TUI.scroll_list({ items = player_items, build_row = player_row, visible = 9, row_h = 0.46, width = LEFT_W, empty = "No players yet." }),
-				matches = PVP.TUI.scroll_list({ items = match_items, build_row = match_row, visible = 5, row_h = 0.86, width = RIGHT_W, empty = "Nothing to do: no match is waiting." }),
+				matches = PVP.TUI.scroll_list({ items = match_items, build_row = match_row, visible = 5, row_h = 0.82, width = RIGHT_W, empty = "Nothing to do: no match is waiting." }),
 			}
 			page.el = MPAPI.ui_element(build)
 			return { n = G.UIT.ROOT, config = { align = "tm", colour = G.C.CLEAR }, nodes = { { n = G.UIT.R, config = { align = "tm", padding = 0.1 }, nodes = { page.el.node } } } }
@@ -422,6 +471,145 @@ MPAPI.on_loaded(function()
 		end,
 	})
 end)
+
+-- CO-ORGANISERS (the organiser): the code to share, NEW CODE, and the
+-- co-organisers with REMOVE. Updated in place.
+local coorg = nil -- { el, confirm }
+
+local COORG_W = 9.4
+
+local function box(nodes)
+	return {
+		n = G.UIT.R,
+		config = { align = "cm", padding = 0.08 },
+		nodes = { { n = G.UIT.C, config = { align = "cm", minw = COORG_W, padding = 0.1, r = 0.1, colour = mix_colours(G.C.BLACK, G.C.L_BLACK, 0.5) }, nodes = nodes } },
+	}
+end
+
+local function coorg_contents()
+	local view = page.view
+	local code = view and view.coOrganiserCode
+	local list = view and view.coOrganisers or {}
+	local rows = {
+		{ n = G.UIT.R, config = { align = "cm", padding = 0.06 }, nodes = { TUI().text("CO-ORGANISERS", 0.45, G.C.PURPLE) } },
+		{ n = G.UIT.R, config = { align = "cm" }, nodes = { TUI().text("They help run it: results, deadlines, pausing, players.", TUI().SMALL, G.C.UI.TEXT_INACTIVE) } },
+	}
+	-- The code to share.
+	local code_row
+	if code then
+		code_row = TUI().hbox({
+			{ n = G.UIT.C, config = { align = "cm", minw = 2.6, minh = 0.7, r = 0.1, colour = G.C.BLACK }, nodes = { TUI().text(code, 0.5, G.C.GOLD) } },
+			TUI().button("COPY", "tom_coorg_copy", nil, G.C.GREEN, 1.4, 0.3),
+			TUI().button("NEW CODE", "tom_coorg_code", nil, G.C.BLUE, 2.0, 0.3),
+		}, "cm", 0.08)
+	else
+		code_row = TUI().hbox({ TUI().button("MAKE A CODE", "tom_coorg_code", nil, G.C.BLUE, 2.6, 0.3) }, "cm", 0.08)
+	end
+	rows[#rows + 1] = box({
+		{ n = G.UIT.R, config = { align = "cm" }, nodes = { TUI().text("SHARE THIS CODE", TUI().SMALL, G.C.GOLD) } },
+		code_row,
+		{ n = G.UIT.R, config = { align = "cm" }, nodes = { TUI().text("They enter it with JOIN AS CO-ORGANISER. A new code stops the old one.", 0.24, G.C.UI.TEXT_INACTIVE) } },
+	})
+	-- Who helps now.
+	local people = {
+		{ n = G.UIT.R, config = { align = "cm" }, nodes = { TUI().text("CO-ORGANISERS  " .. #list .. " / 5", TUI().SMALL, G.C.GOLD) } },
+	}
+	if #list == 0 then
+		people[#people + 1] = { n = G.UIT.R, config = { align = "cm", padding = 0.06 }, nodes = { TUI().text("Nobody yet.", TUI().SMALL, G.C.UI.TEXT_INACTIVE) } }
+	end
+	for _, c in ipairs(list) do
+		local sure = coorg.confirm == c.id
+		people[#people + 1] = {
+			n = G.UIT.R,
+			config = { align = "cm", padding = 0.02 },
+			nodes = {
+				{ n = G.UIT.C, config = { align = "cl", minw = COORG_W - 2.4 }, nodes = { TUI().text(c.name, TUI().TEXT) } },
+				{ n = G.UIT.C, config = { align = "cr", minw = 2.0 }, nodes = { TUI().button(sure and "SURE?" or "REMOVE", "tom_coorg_remove", { id = c.id }, G.C.RED, 1.6, 0.28) } },
+			},
+		}
+	end
+	rows[#rows + 1] = box(people)
+	rows[#rows + 1] = { n = G.UIT.R, config = { align = "cm", minh = 0.4 }, nodes = { TUI().text(coorg.message or " ", TUI().SMALL, coorg.message_colour or G.C.UI.TEXT_INACTIVE) } }
+	rows[#rows + 1] = TUI().hbox({ TUI().button("DONE", "tom_coorg_done", nil, G.C.GREEN, 2.2) }, "cm", 0.06)
+	return rows
+end
+
+local function coorg_refresh()
+	if coorg and coorg.el then
+		coorg.el:update()
+	end
+end
+
+function TOM.open_coorganisers(view)
+	coorg = {}
+	-- A fixed width: it updates in place, and a box can't grow after it is laid out.
+	coorg.el = MPAPI.ui_element(function()
+		return { nodes = { { n = G.UIT.C, config = { align = "cm", minw = COORG_W + 0.4 }, nodes = coorg_contents() } } }
+	end)
+	G.FUNCS.overlay_menu({
+		definition = create_UIBox_generic_options({
+			no_back = true,
+			contents = { { n = G.UIT.R, config = { align = "cm", padding = 0.1 }, nodes = { coorg.el.node } } },
+		}),
+	})
+end
+
+-- Runs a co-organiser RPC, then shows the tournament's new view.
+local function coorg_call(rpc_id, body)
+	body.id = page.id
+	PVP.Tournaments.call(rpc_id, body, function(err, data)
+		if not coorg then
+			return
+		end
+		if err then
+			coorg.message, coorg.message_colour = UI.error_text(err), G.C.RED
+		elseif data and data.tournament then
+			page.view = data.tournament
+			coorg.message = nil
+		end
+		coorg.confirm = nil
+		coorg_refresh()
+	end)
+end
+
+G.FUNCS.tom_coorg_copy = function()
+	local code = page.view and page.view.coOrganiserCode
+	if code and coorg then
+		love.system.setClipboardText(code)
+		coorg.message, coorg.message_colour = "Copied " .. code .. ".", G.C.GREEN
+		coorg_refresh()
+	end
+end
+
+G.FUNCS.tom_coorg_code = function()
+	coorg_call("tournament_co_organiser_code", {})
+end
+
+G.FUNCS.tom_coorg_remove = function(e)
+	local id = e.config.ref_table and e.config.ref_table.id
+	if not id or not coorg then
+		return
+	end
+	if coorg.confirm ~= id then
+		coorg.confirm = id
+		coorg_refresh()
+		return
+	end
+	local keep = {}
+	for _, c in ipairs(page.view and page.view.coOrganisers or {}) do
+		if c.id ~= id then
+			keep[#keep + 1] = c.id
+		end
+	end
+	-- An empty list would be sent as [] -- what the server wants here.
+	coorg_call("tournament_co_organisers_set", { userIds = keep })
+end
+
+G.FUNCS.tom_coorg_done = function()
+	coorg = nil
+	G.FUNCS.exit_overlay_menu()
+	rebuild()
+end
 
 function TOM.open_manage(id, message)
 	page.message, page.message_colour = message, message and G.C.ORANGE or nil
@@ -462,6 +650,14 @@ G.FUNCS.tom_manage_do = function(e)
 		act("tournament_cancel", {}, "Cancelled.")
 	elseif what == "bots" then
 		act("tournament_dev_fill", { count = e.config.ref_table.count }, "Added " .. e.config.ref_table.count .. " bots.")
+	elseif what == "coorg" then
+		if page.view then
+			TOM.open_coorganisers(page.view)
+		end
+	elseif what == "edit" then
+		if page.view then
+			TOM.open_edit(page.view)
+		end
 	elseif what == "bracket" then
 		PVP.open_tournament_bracket(page.id)
 	end
@@ -524,7 +720,8 @@ MPAPI.on_loaded(function()
 	PVP.Tournaments.on_change(function()
 		if page.active and page.id then
 			local cached = PVP.Tournaments.state.views[page.id]
-			if cached and cached ~= page.view then
+			local runs = cached and (cached.role == "organiser" or cached.role == "co_organiser")
+			if cached and runs and cached ~= page.view then
 				page.view = cached
 				rebuild()
 			end
