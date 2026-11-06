@@ -179,27 +179,29 @@ F.DESC_LINE = 100
 
 -- A description as the editor's lines (always DESC_LINES of them). A line
 -- longer than a box is split at a space where it can be.
-function F.split_description(text)
+function F.split_description(text, count, width)
+	count, width = count or F.DESC_LINES, width or F.DESC_LINE
 	local lines = {}
 	for line in (tostring(text or "") .. "\n"):gmatch("([^\n]*)\n") do
-		while #line > F.DESC_LINE do
-			local cut = line:sub(1, F.DESC_LINE):match("^.*() ") or (F.DESC_LINE + 1)
+		while #line > width do
+			local cut = line:sub(1, width):match("^.*() ") or (width + 1)
 			lines[#lines + 1] = line:sub(1, cut - 1)
 			line = line:sub(cut):gsub("^ ", "")
 		end
 		lines[#lines + 1] = line
 	end
 	local out = {}
-	for i = 1, F.DESC_LINES do
+	for i = 1, count do
 		out[i] = lines[i] or ""
 	end
 	return out
 end
 
 -- The editor's lines as the description: trailing empty lines dropped.
-function F.join_description(lines)
+function F.join_description(lines, count)
+	count = count or F.DESC_LINES
 	local last = 0
-	for i = 1, F.DESC_LINES do
+	for i = 1, count do
 		if (lines[i] or ""):match("%S") then
 			last = i
 		end

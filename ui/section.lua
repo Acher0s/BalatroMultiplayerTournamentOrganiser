@@ -8,10 +8,15 @@ local WIDTH = 12.4
 local STATUS = { draft = "Draft", registration = "Registration", check_in = "Check-in", running = "Running", finished = "Finished", cancelled = "Cancelled" }
 local ORDER = { running = 1, check_in = 2, registration = 3, draft = 4, finished = 5, cancelled = 6 }
 
+-- SHOW FINISHED: finished and cancelled ones are hidden until asked for.
+local section = { finished = false, el = nil }
+local OVER = { finished = true, cancelled = true }
+
 local function run_by_me()
 	local out = {}
 	for _, t in ipairs(PVP.Tournaments.state.mine or {}) do
-		if t.organiser or t.role == "organiser" or t.role == "co_organiser" then
+		local runs = t.organiser or t.role == "organiser" or t.role == "co_organiser"
+		if runs and (section.finished or not OVER[t.status]) then
 			out[#out + 1] = t
 		end
 	end
@@ -25,7 +30,7 @@ local function run_by_me()
 	return out
 end
 
-local function build()
+local function build_inner()
 	local TUI = PVP.TUI
 	local TT = PVP.TournamentTime
 	local rows = {
@@ -53,7 +58,8 @@ local function build()
 	}
 	local mine = run_by_me()
 	if #mine == 0 then
-		rows[#rows + 1] = TUI.message(PVP.Tournaments.state.mine and "You don't run any tournaments yet." or "Loading...")
+		local none = section.finished and "You don't run any tournaments yet." or "No tournaments on the go."
+		rows[#rows + 1] = TUI.message(PVP.Tournaments.state.mine and none or "Loading...")
 	end
 	for i = 1, math.min(#mine, SHOWN) do
 		local t = mine[i]
@@ -64,10 +70,29 @@ local function build()
 			{ n = G.UIT.R, config = { align = "cl" }, nodes = { TUI.text(info, TUI.SMALL, G.C.UI.TEXT_INACTIVE) } },
 		}, { TUI.button("MANAGE", "tom_section_manage", { id = t.id }, G.C.PURPLE, 1.8) }, WIDTH, t.official)
 	end
+	-- Under the list: how many more, and SHOW / HIDE FINISHED.
+	local foot = {}
 	if #mine > SHOWN then
-		rows[#rows + 1] = TUI.message("+" .. (#mine - SHOWN) .. " older")
+		foot[#foot + 1] = { n = G.UIT.C, config = { align = "cm", padding = 0.06 }, nodes = { TUI.text("+" .. (#mine - SHOWN) .. " older", TUI.SMALL, G.C.UI.TEXT_INACTIVE) } }
 	end
+	foot[#foot + 1] = { n = G.UIT.C, config = { align = "cm", padding = 0.03 }, nodes = { TUI.button(section.finished and "HIDE FINISHED" or "SHOW FINISHED", "tom_section_finished", nil, G.C.UI.BACKGROUND_INACTIVE, 2.8, 0.3) } }
+	rows[#rows + 1] = { n = G.UIT.R, config = { align = "cm", padding = 0.04 }, nodes = foot }
 	return { n = G.UIT.R, config = { align = "cm", padding = 0.05 }, nodes = { { n = G.UIT.C, config = { align = "tm" }, nodes = rows } } }
+end
+
+-- Its own element, so SHOW FINISHED redraws just this section.
+local function build()
+	section.el = MPAPI.ui_element(function()
+		return { nodes = { build_inner() } }
+	end)
+	return { n = G.UIT.R, config = { align = "cm" }, nodes = { section.el.node } }
+end
+
+G.FUNCS.tom_section_finished = function()
+	section.finished = not section.finished
+	if section.el then
+		section.el:update()
+	end
 end
 
 MPAPI.on_loaded(function()

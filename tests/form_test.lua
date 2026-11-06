@@ -139,6 +139,12 @@ local long = string.rep("word ", 30) -- 150 characters
 local split = F.split_description(long)
 check("long split at a space", #split[1] <= F.DESC_LINE and split[2] ~= "" and not split[2]:match("^ "), split[2])
 check("empty", F.join_description(F.split_description("")) == "")
+-- The notice board: 3 lines of 100.
+local notice = F.split_description("Finals on stream\nat 9 PM", 3, 100)
+check("notice split", #notice == 3 and notice[1] == "Finals on stream" and notice[2] == "at 9 PM" and notice[3] == "")
+check("notice join", F.join_description(notice, 3) == "Finals on stream\nat 9 PM")
+local short_lines = F.split_description(string.rep("word ", 30), 2, 40)
+check("narrow split", #short_lines == 2 and #short_lines[1] <= 40)
 
 if failures > 0 then
 	print(failures .. " failure(s)")
