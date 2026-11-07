@@ -37,7 +37,7 @@ A round set to continue at a date and time (for example the final the next eveni
 
 - has to be after the tournament's start, and timed rounds have to be in round order;
 - never starts early. If earlier rounds run late, each of its matches opens as soon as both players are known, with the normal ready-up;
-- can have its own **CHECK IN** (10 to 60 minutes before, opening no earlier than the tournament's start). Every player still in is told when it opens. A player whose match is ready when the round starts and who didn't check in forfeits that match; if neither player checked in, the timetable's rule for unplayed matches decides it. Players still finishing an earlier round when it starts don't need to check in. If you start the round early by hand, its check-in is dropped.
+- can have its own check-in (the **Check in** setting: 10 to 60 minutes before, opening no earlier than the tournament's start). Every player still in is told when it opens. A player whose match is ready when the round starts and who didn't check in forfeits that match; if neither player checked in, the timetable's rule for unplayed matches decides it. Players still finishing an earlier round when it starts don't need to check in. If you start the round early by hand, its check-in is dropped.
 
 ## Running a tournament
 

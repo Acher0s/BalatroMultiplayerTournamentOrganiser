@@ -317,7 +317,7 @@ return {
 			k_tom_round_before_start = "A round can't continue before the tournament starts.",
 			k_tom_round_check_in_before_start = "A round's check-in can't open before the tournament starts.",
 			k_tom_rounds_out_of_order = "Rounds set to a date and time must be in round order.",
-			k_tom_check_in_before = "CHECK IN",
+			k_tom_check_in_before = "Check in",
 			k_tom_round_check_in_part = "check-in #1#",
 			k_tom_help_round_check_in = "Players still in check in this long\nbefore the round starts. Anyone who\nhasn't forfeits their match. Players\nstill finishing an earlier round when\nit starts don't need to.",
 			k_tom_round_by_round = "Round by round",
