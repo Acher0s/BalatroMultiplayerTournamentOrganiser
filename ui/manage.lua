@@ -20,7 +20,8 @@ local function TUI()
 	return PVP.TUI
 end
 
-local STATUS = { draft = "Draft", registration = "Registration open", check_in = "Check-in", running = "Running", finished = "Finished", cancelled = "Cancelled" }
+-- Status -> text key.
+local STATUS = { draft = "k_tom_status_draft", registration = "k_tom_status_registration_open", check_in = "k_tom_status_check_in", running = "k_tom_status_running", finished = "k_tom_status_finished", cancelled = "k_tom_status_cancelled" }
 local ROUND = { W = "W", L = "L", GF = "GF", RR = "R", SW = "R" }
 
 local function rebuild()
@@ -43,7 +44,7 @@ local function load()
 			return
 		end
 		if err or not data or not data.tournament then
-			say(UI.error_text(err or "The server sent no tournament"), G.C.RED)
+			say(UI.error_text(err or TOM.T("k_tom_no_tournament_sent")), G.C.RED)
 			return
 		end
 		PVP.Tournaments.state.views[page.id] = data.tournament
@@ -52,7 +53,7 @@ local function load()
 		local role = data.tournament.role
 		if role ~= "organiser" and role ~= "co_organiser" then
 			page.view = nil
-			say("You don't help run this tournament any more.", G.C.ORANGE)
+			say(TOM.T("k_tom_not_running_it"), G.C.ORANGE)
 			return
 		end
 		page.view = data.tournament
@@ -64,7 +65,7 @@ end
 local function act(rpc_id, body, done_text)
 	body.id = page.id
 	page.confirm = nil
-	say("Working...", G.C.UI.TEXT_INACTIVE)
+	say(TOM.T("k_tom_working"), G.C.UI.TEXT_INACTIVE)
 	PVP.Tournaments.call(rpc_id, body, function(err)
 		if err then
 			say(UI.error_text(err), G.C.RED)
@@ -78,7 +79,7 @@ end
 
 local function name_of(p)
 	if p == "tbd" then
-		return "TBD"
+		return TOM.T("k_tom_tbd")
 	end
 	return type(p) == "table" and p.name or "bye"
 end
@@ -177,16 +178,16 @@ local function header(view)
 	local when
 	if s.status == "registration" or s.status == "check_in" or s.status == "draft" then
 		local left = TT.countdown(s.startsAt)
-		when = "Starts " .. TT.format_local(s.startsAt) .. (left and ("  (in " .. left .. ")") or "")
+		when = left and TOM.T("k_tom_starts_in_at", TT.format_local(s.startsAt), left) or TOM.T("k_tom_starts_at", TT.format_local(s.startsAt))
 	-- The status is already on the line above: this says when instead.
 	elseif s.status == "running" then
-		when = view.paused and "Paused: deadlines are stopped" or ("Started " .. TT.format_local(view.startedAt or s.startsAt))
+		when = view.paused and TOM.T("k_tom_paused_deadlines") or TOM.T("k_tom_started_at", TT.format_local(view.startedAt or s.startsAt))
 	elseif s.status == "finished" and view.finishedAt then
-		when = "Ended " .. TT.format_local(view.finishedAt)
+		when = TOM.T("k_tom_ended_at", TT.format_local(view.finishedAt))
 	end
-	local info = string.format("%s  -  %s  -  %d/%d players", STATUS[s.status] or s.status, TUI().format_name(s.format), s.players, s.maxPlayers)
+	local info = TOM.T("k_tom_manage_info", STATUS[s.status] and TOM.T(STATUS[s.status]) or s.status, TUI().format_name(s.format), s.players, s.maxPlayers)
 	if s.waitlist and s.waitlist > 0 then
-		info = info .. ", " .. s.waitlist .. " waiting"
+		info = TOM.T("k_tom_list2", info, TOM.T("k_tom_n_waiting", s.waitlist))
 	end
 	local rows = {
 		{ n = G.UIT.R, config = { align = "cm" }, nodes = { TUI().name_line(s, 0.45) } },
@@ -196,7 +197,7 @@ local function header(view)
 		rows[#rows + 1] = { n = G.UIT.R, config = { align = "cm" }, nodes = { TUI().text(when, TUI().TEXT, view.paused and G.C.ORANGE or G.C.GOLD) } }
 	end
 	if view.inviteCode then
-		rows[#rows + 1] = { n = G.UIT.R, config = { align = "cm" }, nodes = { TUI().text("Invite code: " .. view.inviteCode, TUI().TEXT, G.C.BLUE) } }
+		rows[#rows + 1] = { n = G.UIT.R, config = { align = "cm" }, nodes = { TUI().text(TOM.T("k_tom_invite_code_is", view.inviteCode), TUI().TEXT, G.C.BLUE) } }
 	end
 	return rows
 end
@@ -212,7 +213,7 @@ local function player_items()
 	local before = status == "draft" or status == "registration" or status == "check_in"
 	local manual = before and view.seeding and view.seeding.kind == "manual" and view.role == "organiser"
 	if manual then
-		items[#items + 1] = { heading = "SEEDING ORDER (top = seed 1)" }
+		items[#items + 1] = { heading = TOM.T("k_tom_seeding_order") }
 		local by_id = {}
 		for _, e in ipairs(view.entrants or {}) do
 			by_id[e.id] = e
@@ -224,7 +225,7 @@ local function player_items()
 			end
 		end
 	else
-		items[#items + 1] = { heading = "PLAYERS" }
+		items[#items + 1] = { heading = TOM.T("k_tom_players_upper") }
 		for _, e in ipairs(view.entrants or {}) do
 			local bits = {}
 			if e.seed then
@@ -234,14 +235,14 @@ local function player_items()
 				bits[#bits + 1] = tostring(math.floor(e.rating))
 			end
 			if status == "check_in" then
-				bits[#bits + 1] = e.checkedIn and "in" or "not in"
+				bits[#bits + 1] = TOM.T(e.checkedIn and "k_tom_checked_in_short" or "k_tom_not_checked_in_short")
 			end
 			local text = short(e.name, 12) .. (#bits > 0 and ("  " .. table.concat(bits, "  ")) or "")
 			items[#items + 1] = { text = text, colour = e.dropped and G.C.UI.TEXT_INACTIVE or nil, remove = not e.dropped and status ~= "finished" and status ~= "cancelled" and e.id or nil, drop = status == "running" }
 		end
 	end
 	if #(view.waitlist or {}) > 0 then
-		items[#items + 1] = { heading = "WAITLIST" }
+		items[#items + 1] = { heading = TOM.T("k_tom_waitlist_upper") }
 		for _, w in ipairs(view.waitlist) do
 			items[#items + 1] = { text = short(w.name, 18), promote = before and w.id or nil }
 		end
@@ -257,15 +258,15 @@ local function player_row(item)
 	local confirming = item.remove and page.confirm == "remove:" .. item.remove
 	-- In the seeding editor a row has UP and a small X (SURE? while asking).
 	if item.up and not confirming then
-		buttons[#buttons + 1] = TUI().button("UP", "tom_manage_seed_up", { index = item.up }, G.C.UI.BACKGROUND_INACTIVE, 0.8, 0.26)
+		buttons[#buttons + 1] = TUI().button(TOM.T("k_tom_up"), "tom_manage_seed_up", { index = item.up }, G.C.UI.BACKGROUND_INACTIVE, 0.8, 0.26)
 	end
 	if item.promote then
-		buttons[#buttons + 1] = TUI().button("PROMOTE", "tom_manage_player", { what = "promote", user = item.promote }, G.C.GREEN, 1.5, 0.26)
+		buttons[#buttons + 1] = TUI().button(TOM.T("k_tom_promote"), "tom_manage_player", { what = "promote", user = item.promote }, G.C.GREEN, 1.5, 0.26)
 	end
 	if item.remove then
-		local label, w = item.drop and "DROP" or "REMOVE", 1.4
+		local label, w = TOM.T(item.drop and "k_tom_b_drop" or "k_tom_b_remove"), 1.4
 		if confirming then
-			label = "SURE?"
+			label = TOM.T("k_tom_b_sure")
 		elseif item.up then
 			label, w = "X", 0.6
 		end
@@ -299,15 +300,15 @@ local function match_items()
 		if open or phase == "unplayed" then
 			local state
 			if phase == "in_game" then
-				state = "playing"
+				state = TOM.T("k_tom_state_playing")
 			elseif phase == "unplayed" then
-				state = "NOT PLAYED"
+				state = TOM.T("k_tom_state_unplayed")
 			elseif phase == "ready_up" and m.clock.deadline then
-				state = (TT.countdown(m.clock.deadline) or TT.format_local(m.clock.deadline)) .. " to ready"
+				state = TOM.T("k_tom_state_to_ready", TT.countdown(m.clock.deadline) or TT.format_local(m.clock.deadline))
 			elseif m.lobby and m.lobby.status == "disputed" then
-				state = "DISPUTED"
+				state = TOM.T("k_tom_state_disputed")
 			else
-				state = "waiting"
+				state = TOM.T("k_tom_state_waiting")
 			end
 			items[#items + 1] = { match = m, state = state, urgent = phase == "unplayed" or (m.lobby and m.lobby.status == "disputed") }
 		end
@@ -331,7 +332,7 @@ local function match_row(item)
 	local function win(side)
 		local p = m.players[side]
 		local key = "win:" .. m.id .. ":" .. side
-		local text = page.confirm == key and "SURE?" or (short(name_of(p), 14) .. " WINS")
+		local text = page.confirm == key and TOM.T("k_tom_b_sure") or TOM.T("k_tom_b_wins", short(name_of(p), 14))
 		return { n = G.UIT.C, config = { align = "cm", padding = 0.02 }, nodes = { TUI().button(text, "tom_manage_result", { match = m.id, side = side }, G.C.UI.BACKGROUND_INACTIVE, 2.55, 0.22) } }
 	end
 	return {
@@ -399,14 +400,14 @@ local function build()
 	end
 	local body = {}
 	if not view then
-		body[#body + 1] = TUI().message(page.message or "Loading...", page.message_colour)
-		body[#body + 1] = TUI().hbox({ TUI().button("BACK", "tom_manage_back", nil, G.C.ORANGE, 2.0) })
+		body[#body + 1] = TUI().message(page.message or TOM.T("k_tom_loading"), page.message_colour)
+		body[#body + 1] = TUI().hbox({ TUI().button(TOM.T("k_tom_back"), "tom_manage_back", nil, G.C.ORANGE, 2.0) })
 		return { n = G.UIT.ROOT, config = { align = "cm", colour = G.C.CLEAR }, nodes = { TUI().panel(body, { align = "cm", minw = 12 }) } }
 	end
 	for _, r in ipairs(header(view)) do
 		body[#body + 1] = r
 	end
-	local buttons = { TUI().button("BACK", "tom_manage_back", nil, G.C.ORANGE, 1.6, 0.3) }
+	local buttons = { TUI().button(TOM.T("k_tom_back"), "tom_manage_back", nil, G.C.ORANGE, 1.6, 0.3) }
 	for _, b in ipairs(actions(view)) do
 		buttons[#buttons + 1] = b
 	end
@@ -431,7 +432,7 @@ local function build()
 		columns[#columns + 1] = {
 			n = G.UIT.C,
 			config = { align = "tm", padding = 0.06, r = 0.1, colour = mix_colours(G.C.BLACK, G.C.L_BLACK, 0.5) },
-			nodes = { { n = G.UIT.R, config = { align = "cl" }, nodes = { TUI().text("MATCHES", TUI().SMALL, G.C.GOLD) } }, page.lists.matches.el.node },
+			nodes = { { n = G.UIT.R, config = { align = "cl" }, nodes = { TUI().text(TOM.T("k_tom_matches"), TUI().SMALL, G.C.GOLD) } }, page.lists.matches.el.node },
 		}
 	elseif seeding_manual then
 		columns[#columns + 1] = TUI().spacer(0.15)
@@ -439,8 +440,8 @@ local function build()
 			n = G.UIT.C,
 			config = { align = "cm", padding = 0.1, minw = 3.4 },
 			nodes = {
-				{ n = G.UIT.R, config = { align = "cm", padding = 0.05 }, nodes = { TUI().button("SAVE ORDER", "tom_manage_seed_save", nil, G.C.GREEN, 2.6) } },
-				{ n = G.UIT.R, config = { align = "cm", padding = 0.05 }, nodes = { TUI().text("UP moves a player one seed up.", TUI().SMALL, G.C.UI.TEXT_INACTIVE) } },
+				{ n = G.UIT.R, config = { align = "cm", padding = 0.05 }, nodes = { TUI().button(TOM.T("k_tom_save_order"), "tom_manage_seed_save", nil, G.C.GREEN, 2.6) } },
+				{ n = G.UIT.R, config = { align = "cm", padding = 0.05 }, nodes = { TUI().text(TOM.T("k_tom_up_moves_a_player_one_seed_up"), TUI().SMALL, G.C.UI.TEXT_INACTIVE) } },
 			},
 		}
 	end
@@ -481,8 +482,8 @@ MPAPI.on_loaded(function()
 				l:dispose()
 			end
 			page.lists = {
-				players = PVP.TUI.scroll_list({ items = player_items, build_row = player_row, visible = 9, row_h = 0.46, width = LEFT_W, empty = "No players yet." }),
-				matches = PVP.TUI.scroll_list({ items = match_items, build_row = match_row, visible = 5, row_h = 0.82, width = RIGHT_W, empty = "Nothing to do: no match is waiting." }),
+				players = PVP.TUI.scroll_list({ items = player_items, build_row = player_row, visible = 9, row_h = 0.46, width = LEFT_W, empty = TOM.T("k_tom_no_players_yet") }),
+				matches = PVP.TUI.scroll_list({ items = match_items, build_row = match_row, visible = 5, row_h = 0.82, width = RIGHT_W, empty = TOM.T("k_tom_no_match_waiting") }),
 			}
 			page.el = MPAPI.ui_element(build)
 			return { n = G.UIT.ROOT, config = { align = "tm", colour = G.C.CLEAR }, nodes = { { n = G.UIT.R, config = { align = "tm", padding = 0.1 }, nodes = { page.el.node } } } }
@@ -523,31 +524,31 @@ local function coorg_contents()
 	local code = view and view.coOrganiserCode
 	local list = view and view.coOrganisers or {}
 	local rows = {
-		{ n = G.UIT.R, config = { align = "cm", padding = 0.06 }, nodes = { TUI().text("CO-ORGANISERS", 0.45, G.C.PURPLE) } },
-		{ n = G.UIT.R, config = { align = "cm" }, nodes = { TUI().text("They help run it: results, deadlines, pausing, players.", TUI().SMALL, G.C.UI.TEXT_INACTIVE) } },
+		{ n = G.UIT.R, config = { align = "cm", padding = 0.06 }, nodes = { TUI().text(TOM.T("k_tom_co_organisers"), 0.45, G.C.PURPLE) } },
+		{ n = G.UIT.R, config = { align = "cm" }, nodes = { TUI().text(TOM.T("k_tom_they_help_run_it_results_deadlines_p"), TUI().SMALL, G.C.UI.TEXT_INACTIVE) } },
 	}
 	-- The code to share.
 	local code_row
 	if code then
 		code_row = TUI().hbox({
 			{ n = G.UIT.C, config = { align = "cm", minw = 2.6, minh = 0.7, r = 0.1, colour = G.C.BLACK }, nodes = { TUI().text(code, 0.5, G.C.GOLD) } },
-			TUI().button("COPY", "tom_coorg_copy", nil, G.C.GREEN, 1.4, 0.3),
-			TUI().button("NEW CODE", "tom_coorg_code", nil, G.C.BLUE, 2.0, 0.3),
+			TUI().button(TOM.T("k_tom_copy"), "tom_coorg_copy", nil, G.C.GREEN, 1.4, 0.3),
+			TUI().button(TOM.T("k_tom_new_code"), "tom_coorg_code", nil, G.C.BLUE, 2.0, 0.3),
 		}, "cm", 0.08)
 	else
-		code_row = TUI().hbox({ TUI().button("MAKE A CODE", "tom_coorg_code", nil, G.C.BLUE, 2.6, 0.3) }, "cm", 0.08)
+		code_row = TUI().hbox({ TUI().button(TOM.T("k_tom_make_a_code"), "tom_coorg_code", nil, G.C.BLUE, 2.6, 0.3) }, "cm", 0.08)
 	end
 	rows[#rows + 1] = box({
-		{ n = G.UIT.R, config = { align = "cm" }, nodes = { TUI().text("SHARE THIS CODE", TUI().SMALL, G.C.GOLD) } },
+		{ n = G.UIT.R, config = { align = "cm" }, nodes = { TUI().text(TOM.T("k_tom_share_this_code"), TUI().SMALL, G.C.GOLD) } },
 		code_row,
-		{ n = G.UIT.R, config = { align = "cm" }, nodes = { TUI().text("They enter it with JOIN AS CO-ORGANISER. A new code stops the old one.", 0.24, G.C.UI.TEXT_INACTIVE) } },
+		{ n = G.UIT.R, config = { align = "cm" }, nodes = { TUI().text(TOM.T("k_tom_they_enter_it_with_join_as_co_organi"), 0.24, G.C.UI.TEXT_INACTIVE) } },
 	})
 	-- Who helps now.
 	local people = {
-		{ n = G.UIT.R, config = { align = "cm" }, nodes = { TUI().text("CO-ORGANISERS  " .. #list .. " / 5", TUI().SMALL, G.C.GOLD) } },
+		{ n = G.UIT.R, config = { align = "cm" }, nodes = { TUI().text(TOM.T("k_tom_co_organisers_count", #list, 5), TUI().SMALL, G.C.GOLD) } },
 	}
 	if #list == 0 then
-		people[#people + 1] = { n = G.UIT.R, config = { align = "cm", padding = 0.06 }, nodes = { TUI().text("Nobody yet.", TUI().SMALL, G.C.UI.TEXT_INACTIVE) } }
+		people[#people + 1] = { n = G.UIT.R, config = { align = "cm", padding = 0.06 }, nodes = { TUI().text(TOM.T("k_tom_nobody_yet"), TUI().SMALL, G.C.UI.TEXT_INACTIVE) } }
 	end
 	for _, c in ipairs(list) do
 		local sure = coorg.confirm == c.id
@@ -562,7 +563,7 @@ local function coorg_contents()
 	end
 	rows[#rows + 1] = box(people)
 	rows[#rows + 1] = { n = G.UIT.R, config = { align = "cm", minh = 0.4 }, nodes = { TUI().text(coorg.message or " ", TUI().SMALL, coorg.message_colour or G.C.UI.TEXT_INACTIVE) } }
-	rows[#rows + 1] = TUI().hbox({ TUI().button("DONE", "tom_coorg_done", nil, G.C.GREEN, 2.2) }, "cm", 0.06)
+	rows[#rows + 1] = TUI().hbox({ TUI().button(TOM.T("k_tom_done"), "tom_coorg_done", nil, G.C.GREEN, 2.2) }, "cm", 0.06)
 	return rows
 end
 
@@ -608,7 +609,7 @@ G.FUNCS.tom_coorg_copy = function()
 	local code = page.view and page.view.coOrganiserCode
 	if code and coorg then
 		love.system.setClipboardText(code)
-		coorg.message, coorg.message_colour = "Copied " .. code .. ".", G.C.GREEN
+		coorg.message, coorg.message_colour = TOM.T("k_tom_copied", code), G.C.GREEN
 		coorg_refresh()
 	end
 end
@@ -663,7 +664,7 @@ end
 local function talk_target_label()
 	if not talk.target then
 		local n = #lobby_matches(page.view)
-		return "All open match lobbies (" .. n .. ")"
+		return TOM.T("k_tom_all_open_lobbies", n)
 	end
 	for _, m in ipairs(lobby_matches(page.view)) do
 		if m.id == talk.target then
@@ -684,8 +685,7 @@ local function talk_contents()
 			config = { align = "cm" },
 			nodes = {
 				TUI().text(
-					notice and "Shown above every player's tournament screen while it has text."
-						or "Posted in the match lobby's chat as [Organiser], and shown to its players as a banner.",
+					TOM.T(notice and "k_tom_notice_sub" or "k_tom_message_sub"),
 					TUI().SMALL,
 					G.C.UI.TEXT_INACTIVE
 				),
@@ -695,9 +695,9 @@ local function talk_contents()
 	if not notice then
 		rows[#rows + 1] = { n = G.UIT.R, config = { minh = 0.15 } }
 		rows[#rows + 1] = TUI().hbox({
-			{ n = G.UIT.C, config = { align = "cm", minw = 1.0 }, nodes = { TUI().text("To", TUI().SMALL, G.C.UI.TEXT_INACTIVE) } },
+			{ n = G.UIT.C, config = { align = "cm", minw = 1.0 }, nodes = { TUI().text(TOM.T("k_tom_to"), TUI().SMALL, G.C.UI.TEXT_INACTIVE) } },
 			{ n = G.UIT.C, config = { align = "cm", minw = 6.6, minh = 0.5, r = 0.1, colour = G.C.BLACK }, nodes = { TUI().text(talk_target_label(), TUI().SMALL) } },
-			TUI().button("CHANGE", "tom_talk_target", nil, G.C.BLUE, 1.6, 0.3),
+			TUI().button(TOM.T("k_tom_change"), "tom_talk_target", nil, G.C.BLUE, 1.6, 0.3),
 		}, "cm", 0.08)
 	end
 	-- A text box draws taller than its row: gaps keep it off the text around.
@@ -711,9 +711,9 @@ local function talk_contents()
 	end
 	rows[#rows + 1] = { n = G.UIT.R, config = { minh = 0.2 } }
 	rows[#rows + 1] = { n = G.UIT.R, config = { align = "cm", minh = 0.4 }, nodes = { TUI().text(talk.message or "Up to " .. count .. " lines of " .. width .. " characters. Ctrl+V pastes.", TUI().SMALL, talk.colour or G.C.UI.TEXT_INACTIVE) } }
-	local buttons = { TUI().button("CANCEL", "tom_talk_close", nil, G.C.ORANGE, 1.8) }
+	local buttons = { TUI().button(TOM.T("k_tom_cancel"), "tom_talk_close", nil, G.C.ORANGE, 1.8) }
 	if notice then
-		buttons[#buttons + 1] = TUI().button("CLEAR", "tom_talk_clear", nil, G.C.RED, 1.8)
+		buttons[#buttons + 1] = TUI().button(TOM.T("k_tom_clear"), "tom_talk_clear", nil, G.C.RED, 1.8)
 	end
 	buttons[#buttons + 1] = TUI().spacer(notice and 3.4 or 5.4)
 	buttons[#buttons + 1] = TUI().button(talk.busy and "..." or (notice and "SAVE" or "SEND"), "tom_talk_send", nil, G.C.GREEN, 2.2)
@@ -805,7 +805,7 @@ G.FUNCS.tom_talk_clear = function()
 	for k in pairs(talk.form) do
 		talk.form[k] = ""
 	end
-	talk_refresh("Cleared. SAVE takes the notice down.", G.C.ORANGE)
+	talk_refresh(TOM.T("k_tom_notice_cleared_hint"), G.C.ORANGE)
 end
 
 G.FUNCS.tom_talk_send = function()
@@ -815,7 +815,7 @@ G.FUNCS.tom_talk_send = function()
 	local text = talk_text()
 	local notice = talk.kind == "notice"
 	if not notice and not text:match("%S") then
-		talk_refresh("Write a message first.", G.C.RED)
+		talk_refresh(TOM.T("k_tom_write_message_first"), G.C.RED)
 		return
 	end
 	talk.busy = true
@@ -840,7 +840,7 @@ G.FUNCS.tom_talk_send = function()
 			talk_done(text:match("%S") and "Notice board updated." or "Notice board cleared.")
 		else
 			local sent = data and data.sent or 0
-			talk_done("Message sent to " .. sent .. (sent == 1 and " lobby." or " lobbies."))
+			talk_done(TOM.Form.count(sent, "k_tom_message_sent"))
 		end
 	end)
 end
@@ -867,23 +867,23 @@ end
 G.FUNCS.tom_manage_do = function(e)
 	local what = e.config.ref_table and e.config.ref_table.what
 	if what == "open" then
-		act("tournament_open", {}, "Registration is open.")
+		act("tournament_open", {}, TOM.T("k_tom_done_open"))
 	elseif what == "close_reg" then
-		act("tournament_registration_set", { closed = true }, "Registration is closed.")
+		act("tournament_registration_set", { closed = true }, TOM.T("k_tom_done_closed"))
 	elseif what == "open_reg" then
-		act("tournament_registration_set", { closed = false }, "Registration is open again.")
+		act("tournament_registration_set", { closed = false }, TOM.T("k_tom_done_reopened"))
 	elseif what == "start" and confirmed("start") then
-		act("tournament_start", {}, "Started.")
+		act("tournament_start", {}, TOM.T("k_tom_done_started"))
 	elseif what == "pause" then
-		act("tournament_pause", {}, "Paused: deadlines are stopped.")
+		act("tournament_pause", {}, TOM.T("k_tom_done_paused"))
 	elseif what == "resume" then
-		act("tournament_resume", {}, "Resumed.")
+		act("tournament_resume", {}, TOM.T("k_tom_done_resumed"))
 	elseif what == "round" then
-		act("tournament_round_start", {}, "The next round has started.")
+		act("tournament_round_start", {}, TOM.T("k_tom_done_round"))
 	elseif what == "cancel" and confirmed("cancel") then
-		act("tournament_cancel", {}, "Cancelled.")
+		act("tournament_cancel", {}, TOM.T("k_tom_done_cancelled"))
 	elseif what == "bots" then
-		act("tournament_dev_fill", { count = e.config.ref_table.count }, "Added " .. e.config.ref_table.count .. " bots.")
+		act("tournament_dev_fill", { count = e.config.ref_table.count }, TOM.T("k_tom_done_bots", e.config.ref_table.count))
 	elseif what == "notice" then
 		if page.view then
 			TOM.open_notice(page.view)
@@ -911,9 +911,9 @@ G.FUNCS.tom_manage_player = function(e)
 		return
 	end
 	if ref.what == "promote" then
-		act("tournament_promote", { userId = ref.user }, "Moved into the tournament.")
+		act("tournament_promote", { userId = ref.user }, TOM.T("k_tom_done_promoted"))
 	elseif ref.what == "remove" and confirmed("remove:" .. ref.user) then
-		act("tournament_remove_player", { userId = ref.user }, "Removed.")
+		act("tournament_remove_player", { userId = ref.user }, TOM.T("k_tom_done_removed"))
 	end
 end
 
@@ -929,13 +929,13 @@ G.FUNCS.tom_manage_result = function(e)
 	if type(p) ~= "table" or not confirmed("win:" .. m.id .. ":" .. ref.side) then
 		return
 	end
-	act("tournament_result_set", { matchId = m.id, scope = "match", winner = p.id }, p.name .. " wins " .. m.id .. ".")
+	act("tournament_result_set", { matchId = m.id, scope = "match", winner = p.id }, TOM.T("k_tom_done_wins", p.name, m.id))
 end
 
 G.FUNCS.tom_manage_extend = function(e)
 	local ref = e.config.ref_table
 	if ref then
-		act("tournament_extend", { matchId = ref.match, minutes = 10 }, "10 more minutes for " .. ref.match .. ".")
+		act("tournament_extend", { matchId = ref.match, minutes = 10 }, TOM.T("k_tom_done_extended", ref.match))
 	end
 end
 
@@ -952,7 +952,7 @@ end
 
 G.FUNCS.tom_manage_seed_save = function()
 	if page.order then
-		act("tournament_seeding_set", { order = page.order }, "Seeding saved.")
+		act("tournament_seeding_set", { order = page.order }, TOM.T("k_tom_done_seeding"))
 	end
 end
 

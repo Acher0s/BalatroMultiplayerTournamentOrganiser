@@ -5,7 +5,8 @@
 local SHOWN = 6
 local WIDTH = 12.4
 
-local STATUS = { draft = "Draft", registration = "Registration", check_in = "Check-in", running = "Running", finished = "Finished", cancelled = "Cancelled" }
+-- Status -> text key.
+local STATUS = { draft = "k_tom_status_draft", registration = "k_tom_status_registration", check_in = "k_tom_status_check_in", running = "k_tom_status_running", finished = "k_tom_status_finished", cancelled = "k_tom_status_cancelled" }
 local ORDER = { running = 1, check_in = 2, registration = 3, draft = 4, finished = 5, cancelled = 6 }
 
 -- SHOW FINISHED: finished and cancelled ones are hidden until asked for.
@@ -58,13 +59,16 @@ local function build_inner()
 	}
 	local mine = run_by_me()
 	if #mine == 0 then
-		local none = section.finished and "You don't run any tournaments yet." or "No tournaments on the go."
-		rows[#rows + 1] = TUI.message(PVP.Tournaments.state.mine and none or "Loading...")
+		local none = TOM.T(section.finished and "k_tom_run_none" or "k_tom_run_none_current")
+		rows[#rows + 1] = TUI.message(PVP.Tournaments.state.mine and none or TOM.T("k_tom_loading"))
 	end
 	for i = 1, math.min(#mine, SHOWN) do
 		local t = mine[i]
-		local when = (t.status == "registration" or t.status == "check_in" or t.status == "draft") and ("  -  " .. TT.format_local(t.startsAt)) or ""
-		local info = string.format("%s  -  %s  -  %d/%d%s", STATUS[t.status] or t.status, TUI.format_name(t.format), t.players or 0, t.maxPlayers or 0, when)
+		local status = STATUS[t.status] and TOM.T(STATUS[t.status]) or t.status
+		local info = TOM.T("k_tom_section_info", status, TUI.format_name(t.format), t.players or 0, t.maxPlayers or 0)
+		if t.status == "registration" or t.status == "check_in" or t.status == "draft" then
+			info = TOM.T("k_tom_dash", info, TT.format_local(t.startsAt))
+		end
 		rows[#rows + 1] = TUI.row({
 			TUI.name_line(t, 0.34),
 			{ n = G.UIT.R, config = { align = "cl" }, nodes = { TUI.text(info, TUI.SMALL, G.C.UI.TEXT_INACTIVE) } },
@@ -167,19 +171,19 @@ end
 G.FUNCS.tom_section_coorg_join = function()
 	local code = (join.code or ""):upper():gsub("%s", "")
 	if #code == 0 then
-		join_refresh("Enter the code first.", G.C.RED)
+		join_refresh(TOM.T("k_tom_enter_code_first"), G.C.RED)
 		return
 	end
 	PVP.Tournaments.call("tournament_co_organiser_join", { code = code }, function(err, data)
 		local t = not err and data and data.tournament
 		if not t then
-			join_refresh(TOM.UI.error_text(err or "No answer"), G.C.RED)
+			join_refresh(TOM.UI.error_text(err or TOM.T("k_tom_no_answer_cap")), G.C.RED)
 			return
 		end
 		join.el = nil
 		G.FUNCS.exit_overlay_menu()
 		PVP.Tournaments.refresh()
-		TOM.open_manage(t.summary.id, "You're a co-organiser of " .. tostring(t.summary.name) .. ".")
+		TOM.open_manage(t.summary.id, TOM.T("k_tom_now_coorganiser", tostring(t.summary.name)))
 	end)
 end
 

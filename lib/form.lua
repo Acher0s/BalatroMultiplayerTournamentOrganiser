@@ -13,47 +13,47 @@ local DAY = 24 * HOUR
 -- Every choice is a list of { value, label }; the wizard steps through them.
 F.CHOICES = {
 	visibility = {
-		{ "public", "Public (listed in Browse)" },
-		{ "private", "Private (invite code only)" },
+		{ "public", "k_tom_opt_public_listed_in_browse" },
+		{ "private", "k_tom_opt_private_invite_code_only" },
 	},
 	maxPlayers = { { 4, "4" }, { 8, "8" }, { 12, "12" }, { 16, "16" }, { 24, "24" }, { 32, "32" }, { 48, "48" }, { 64, "64" }, { 96, "96" }, { 128, "128" } },
-	checkInMinutes = { { false, "No check-in" }, { 10, "10 min before" }, { 15, "15 min before" }, { 20, "20 min before" }, { 30, "30 min before" }, { 45, "45 min before" }, { 60, "60 min before" } },
+	checkInMinutes = { { false, "k_tom_opt_no_check_in" }, { 10, "k_tom_opt_10_min_before" }, { 15, "k_tom_opt_15_min_before" }, { 20, "k_tom_opt_20_min_before" }, { 30, "k_tom_opt_30_min_before" }, { 45, "k_tom_opt_45_min_before" }, { 60, "k_tom_opt_60_min_before" } },
 	format = {
-		{ "single_elim", "Single elimination" },
-		{ "double_elim", "Double elimination" },
-		{ "round_robin", "Round robin" },
-		{ "swiss", "Swiss" },
+		{ "single_elim", "k_tom_opt_single_elimination" },
+		{ "double_elim", "k_tom_opt_double_elimination" },
+		{ "round_robin", "k_tom_opt_round_robin" },
+		{ "swiss", "k_tom_opt_swiss" },
 	},
-	grandFinalReset = { { true, "Yes (bracket reset)" }, { false, "No" } },
-	groupSize = { { false, "One group" }, { 3, "Groups of 3" }, { 4, "Groups of 4" }, { 5, "Groups of 5" }, { 6, "Groups of 6" }, { 8, "Groups of 8" } },
-	swissRounds = { { false, "Automatic" }, { 3, "3" }, { 4, "4" }, { 5, "5" }, { 6, "6" }, { 7, "7" }, { 8, "8" }, { 9, "9" } },
+	grandFinalReset = { { true, "k_tom_opt_yes_bracket_reset" }, { false, "k_tom_opt_no" } },
+	groupSize = { { false, "k_tom_opt_one_group" }, { 3, "k_tom_opt_groups_of_3" }, { 4, "k_tom_opt_groups_of_4" }, { 5, "k_tom_opt_groups_of_5" }, { 6, "k_tom_opt_groups_of_6" }, { 8, "k_tom_opt_groups_of_8" } },
+	swissRounds = { { false, "k_tom_opt_automatic" }, { 3, "3" }, { 4, "4" }, { 5, "5" }, { 6, "6" }, { 7, "7" }, { 8, "8" }, { 9, "9" } },
 	seeding = {
-		{ "rating", "By ranked rating" },
-		{ "random", "Random" },
-		{ "manual", "I set the order" },
+		{ "rating", "k_tom_opt_by_ranked_rating" },
+		{ "random", "k_tom_opt_random" },
+		{ "manual", "k_tom_opt_i_set_the_order" },
 	},
-	bestOf = { { 1, "Best of 1" }, { 3, "Best of 3" }, { 5, "Best of 5" }, { 7, "Best of 7" } },
+	bestOf = { { 1, "k_tom_opt_best_of_1" }, { 3, "k_tom_opt_best_of_3" }, { 5, "k_tom_opt_best_of_5" }, { 7, "k_tom_opt_best_of_7" } },
 	deckKind = {
-		{ "locked", "Everyone plays one deck" },
-		{ "draft", "Ban and pick from a pool" },
+		{ "locked", "k_tom_opt_everyone_plays_one_deck" },
+		{ "draft", "k_tom_opt_ban_and_pick_from_a_pool" },
 	},
 	-- The base game's stakes; in the game the wizard lists every stake it has
 	-- (PvP adds Planet, Spectral and Spectral+ after Gold).
-	stake = { { 1, "White" }, { 2, "Red" }, { 3, "Green" }, { 4, "Black" }, { 5, "Blue" }, { 6, "Purple" }, { 7, "Orange" }, { 8, "Gold" } },
+	stake = { { 1, "k_tom_opt_white" }, { 2, "k_tom_opt_red" }, { 3, "k_tom_opt_green" }, { 4, "k_tom_opt_black" }, { 5, "k_tom_opt_blue" }, { 6, "k_tom_opt_purple" }, { 7, "k_tom_opt_orange" }, { 8, "k_tom_opt_gold" } },
 	banOrder = {
-		{ "lower_seed_first", "Lower seed bans first" },
-		{ "lower_seed_last", "Higher seed bans first" },
-		{ "random", "Random" },
-		{ "previous_loser_first", "Loser of the last game first" },
+		{ "lower_seed_first", "k_tom_opt_lower_seed_bans_first" },
+		{ "lower_seed_last", "k_tom_opt_higher_seed_bans_first" },
+		{ "random", "k_tom_opt_random" },
+		{ "previous_loser_first", "k_tom_opt_loser_of_the_last_game_first" },
 	},
 	preset = {
-		{ "live_event", "Live: play as soon as both are ready" },
-		{ "live_fixed_rounds", "Live: I start each round" },
-		{ "league", "League: play by a deadline" },
+		{ "live_event", "k_tom_opt_live_play_as_soon_as_both_are_ready" },
+		{ "live_fixed_rounds", "k_tom_opt_live_i_start_each_round" },
+		{ "league", "k_tom_opt_league_play_by_a_deadline" },
 	},
-	readyUpMinutes = { { 5, "5 min" }, { 10, "10 min" }, { 15, "15 min" }, { 20, "20 min" }, { 30, "30 min" } },
-	breakMinutes = { { 0, "No breaks" }, { 5, "5 min" }, { 10, "10 min" }, { 15, "15 min" }, { 30, "30 min" }, { 60, "1 hour" } },
-	windowMinutes = { { 1 * 24 * 60, "1 day" }, { 2 * 24 * 60, "2 days" }, { 3 * 24 * 60, "3 days" }, { 5 * 24 * 60, "5 days" }, { 7 * 24 * 60, "1 week" }, { 14 * 24 * 60, "2 weeks" } },
+	readyUpMinutes = { { 5, "k_tom_opt_5_min" }, { 10, "k_tom_opt_10_min" }, { 15, "k_tom_opt_15_min" }, { 20, "k_tom_opt_20_min" }, { 30, "k_tom_opt_30_min" } },
+	breakMinutes = { { 0, "k_tom_opt_no_breaks" }, { 5, "k_tom_opt_5_min" }, { 10, "k_tom_opt_10_min" }, { 15, "k_tom_opt_15_min" }, { 30, "k_tom_opt_30_min" }, { 60, "k_tom_opt_1_hour" } },
+	windowMinutes = { { 1 * 24 * 60, "k_tom_opt_1_day" }, { 2 * 24 * 60, "k_tom_opt_2_days" }, { 3 * 24 * 60, "k_tom_opt_3_days" }, { 5 * 24 * 60, "k_tom_opt_5_days" }, { 7 * 24 * 60, "k_tom_opt_1_week" }, { 14 * 24 * 60, "k_tom_opt_2_weeks" } },
 }
 
 -- PvP's Cocktail deck: it plays 1-3 other decks at once (its recipe).
@@ -95,15 +95,15 @@ end
 -- What is wrong with a pool, or nil.
 function F.pool_problem(settings, all)
 	if #(settings.draftStakes or {}) == 0 then
-		return "The stake pool is empty: pick at least one stake."
+		return TOM.T("k_tom_pool_no_stakes")
 	end
 	local cocktails = settings.poolCocktails or {}
 	if settings.poolDecks and #settings.poolDecks == 0 and #cocktails == 0 then
-		return "The deck pool is empty: pick a deck or add a Cocktail."
+		return TOM.T("k_tom_pool_no_decks")
 	end
 	for _, c in ipairs(cocktails) do
 		if #(c.decks or {}) == 0 then
-			return "A Cocktail in the deck pool mixes nothing yet."
+			return TOM.T("k_tom_pool_empty_cocktail")
 		end
 	end
 	return nil
@@ -112,9 +112,17 @@ end
 -- "12 decks + 2 Cocktails, 3 stakes"
 function F.pool_text(settings)
 	local cocktails = #(settings.poolCocktails or {})
-	local decks = settings.poolDecks and (#settings.poolDecks .. " decks") or "every deck"
+	local decks = settings.poolDecks and F.count(#settings.poolDecks, "k_tom_n_decks") or TOM.T("k_tom_every_deck")
 	local stakes = #(settings.draftStakes or {})
-	return decks .. (cocktails > 0 and (" + " .. cocktails .. " Cocktail" .. (cocktails > 1 and "s" or "")) or "") .. ", " .. stakes .. " stake" .. (stakes == 1 and "" or "s")
+	if cocktails > 0 then
+		decks = TOM.T("k_tom_plus", decks, F.count(cocktails, "k_tom_n_cocktails"))
+	end
+	return TOM.T("k_tom_list2", decks, F.count(stakes, "k_tom_n_stakes"))
+end
+
+-- "1 deck" / "3 decks": key .. "_1" for one, key .. "_n" for any other count.
+function F.count(n, key)
+	return TOM.T(key .. (n == 1 and "_1" or "_n"), n)
 end
 
 -- A deep copy of a pool's lists (a round starting from the defaults).
@@ -233,10 +241,10 @@ function F.start_from_fields(form)
 	local hour = tonumber(form.hour or "")
 	local minute = tonumber(form.minute or "")
 	if not hour or hour ~= math.floor(hour) or hour < 1 or hour > 12 then
-		return nil, "The hour must be 1-12."
+		return nil, TOM.T("k_tom_bad_hour")
 	end
 	if not minute or minute ~= math.floor(minute) or minute < 0 or minute > 59 then
-		return nil, "The minutes must be 0-59."
+		return nil, TOM.T("k_tom_bad_minutes")
 	end
 	local h24 = hour % 12 + (form.pm and 12 or 0)
 	local d = form.date
@@ -354,10 +362,19 @@ function F.step(form, key, dir, list)
 	form[key] = list[i][1]
 end
 
+-- A label: a text key (k_tom_...) is looked up; text a list was built with
+-- at runtime (PvP's game modes, stakes) is shown as it is.
+function F.text(label)
+	if type(label) == "string" and label:sub(1, 6) == "k_tom_" then
+		return TOM.T(label)
+	end
+	return label
+end
+
 function F.label(form, key, list)
 	list = list or F.CHOICES[key]
 	local i = list and index_of(list, form[key])
-	return i and list[i][2] or tostring(form[key])
+	return i and F.text(list[i][2]) or tostring(form[key])
 end
 
 -- Rounds ------------------------------------------------------------------
@@ -385,14 +402,14 @@ end
 
 -- The named rounds a format has, in the order the wizard lists them.
 F.NAMED = {
-	single_elim = { { "QUARTER", "Quarterfinals" }, { "SEMI", "Semifinals" }, { "FINAL", "Final" } },
-	double_elim = { { "WINNERS_FINAL", "Winners final" }, { "LOSERS_FINAL", "Losers final" }, { "FINAL", "Grand final" } },
+	single_elim = { { "QUARTER", "k_tom_opt_quarterfinals" }, { "SEMI", "k_tom_opt_semifinals" }, { "FINAL", "k_tom_opt_final" } },
+	double_elim = { { "WINNERS_FINAL", "k_tom_opt_winners_final" }, { "LOSERS_FINAL", "k_tom_opt_losers_final" }, { "FINAL", "k_tom_opt_grand_final" } },
 }
 
 function F.named_label(format, key)
 	for _, entry in ipairs(F.NAMED[format] or {}) do
 		if entry[1] == key then
-			return entry[2]
+			return F.text(entry[2])
 		end
 	end
 	return key
@@ -537,18 +554,18 @@ function F.describe(settings, form, names, all)
 	local deck_differs = all or settings.deckKind ~= form.deckKind or settings.deck ~= form.deck or settings.stake ~= form.stake or settings.draftStakes ~= form.draftStakes or settings.cocktail ~= form.cocktail or settings.poolDecks ~= form.poolDecks or settings.poolCocktails ~= form.poolCocktails
 	if deck_differs then
 		if settings.deckKind == "locked" then
-			parts[#parts + 1] = F.label(settings, "deck", names.deck) .. " on " .. F.label(settings, "stake", names.stake)
+			parts[#parts + 1] = TOM.T("k_tom_deck_on_stake", F.label(settings, "deck", names.deck), F.label(settings, "stake", names.stake))
 		elseif settings.deckKind == "draft" then
-			parts[#parts + 1] = "ban and pick (" .. F.pool_text(settings) .. ")"
+			parts[#parts + 1] = TOM.T("k_tom_ban_and_pick_of", F.pool_text(settings))
 		elseif all then
-			parts[#parts + 1] = "decks unset"
+			parts[#parts + 1] = TOM.T("k_tom_decks_unset")
 		end
 	end
 	if differs("bestOf") then
 		parts[#parts + 1] = F.label(settings, "bestOf"):lower()
 	end
 	if #parts == 0 then
-		return "same as the defaults"
+		return TOM.T("k_tom_same_as_defaults")
 	end
 	return table.concat(parts, ", ")
 end
@@ -572,9 +589,11 @@ end
 
 -- Longer than a couple of hours: continue at a date and time instead.
 F.TIMING = {
-	breakBefore = { { false, "No break" }, { 5, "5 min" }, { 10, "10 min" }, { 15, "15 min" }, { 30, "30 min" }, { 60, "1 hour" }, { 120, "2 hours" } },
-	start = { { false, "After the rounds before it" }, { "manual", "When I press START ROUND" }, { "at", "At a date and time" } },
-	play = { { false, "Same as the timetable" }, { "live", "Live, with a ready-up" }, { "window", "By a deadline" } },
+	breakBefore = { { false, "k_tom_opt_no_break" }, { 5, "k_tom_opt_5_min" }, { 10, "k_tom_opt_10_min" }, { 15, "k_tom_opt_15_min" }, { 30, "k_tom_opt_30_min" }, { 60, "k_tom_opt_1_hour" }, { 120, "k_tom_opt_2_hours" } },
+	start = { { false, "k_tom_opt_after_the_rounds_before_it" }, { "manual", "k_tom_opt_when_i_press_start_round" }, { "at", "k_tom_opt_at_a_date_and_time" } },
+	play = { { false, "k_tom_opt_same_as_the_timetable" }, { "live", "k_tom_opt_live_with_a_ready_up" }, { "window", "k_tom_opt_by_a_deadline" } },
+	-- A round at a date and time: its own check-in (as the tournament's).
+	checkInMinutes = F.CHOICES.checkInMinutes,
 }
 
 -- Days after the start day a round can continue on.
@@ -586,10 +605,10 @@ F.AT_DAYS_MAX = 14
 function F.round_start_at(t, form)
 	local hour, minute = tonumber(t.atHour or ""), tonumber(t.atMinute or "")
 	if not hour or hour ~= math.floor(hour) or hour < 1 or hour > 12 then
-		return nil, "The hour must be 1-12."
+		return nil, TOM.T("k_tom_bad_hour")
 	end
 	if not minute or minute ~= math.floor(minute) or minute < 0 or minute > 59 then
-		return nil, "The minutes must be 0-59."
+		return nil, TOM.T("k_tom_bad_minutes")
 	end
 	local d = form.date or os.date("*t", math.floor(form.startsAt / 1000))
 	return os.time({ year = d.year, month = d.month, day = d.day + (t.atDay or 0), hour = hour % 12 + (t.atPm and 12 or 0), min = minute, sec = 0 }) * 1000
@@ -605,6 +624,9 @@ function F.timing_override(t, form)
 	if t.start == "at" and form then
 		out.startAt = F.round_start_at(t, form)
 		any = out.startAt ~= nil
+		if out.startAt and t.checkInMinutes then
+			out.checkInMinutes = t.checkInMinutes
+		end
 	elseif t.start == "manual" then
 		out.manualStart = true
 		any = true
@@ -638,14 +660,20 @@ function F.timing_payload(form)
 	return any and out or nil
 end
 
-local WEEKDAYS = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" }
-local MONTHS = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" }
+local WEEKDAYS = { "sun", "mon", "tue", "wed", "thu", "fri", "sat" }
+local MONTHS = { "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec" }
+
+-- "Sat, Nov 14"
+local function day_text(t)
+	return TOM.T("k_tom_day_date", TOM.T("k_tom_day_" .. WEEKDAYS[t.wday]), TOM.T("k_tom_month_" .. MONTHS[t.month]), t.day)
+end
 
 -- "Sat, Nov 14, 8:00 PM"
 function F.when_text(ms)
 	local t = os.date("*t", math.floor(ms / 1000))
 	local hour = t.hour % 12
-	return string.format("%s, %s %d, %d:%02d %s", WEEKDAYS[t.wday], MONTHS[t.month], t.day, hour == 0 and 12 or hour, t.min, t.hour < 12 and "AM" or "PM")
+	local clock = TOM.T(t.hour < 12 and "k_tom_clock_am" or "k_tom_clock_pm", hour == 0 and 12 or hour, string.format("%02d", t.min))
+	return TOM.T("k_tom_list2", day_text(t), clock)
 end
 
 -- The days a round can continue on: { day offset, "Sat, Nov 14" }.
@@ -654,7 +682,7 @@ function F.at_days(form)
 	local out = {}
 	for i = 0, F.AT_DAYS_MAX do
 		local t = os.date("*t", os.time({ year = d.year, month = d.month, day = d.day + i, hour = 12 }))
-		out[#out + 1] = { i, string.format("%s, %s %d%s", WEEKDAYS[t.wday], MONTHS[t.month], t.day, i == 0 and " (start day)" or "") }
+		out[#out + 1] = { i, i == 0 and TOM.T("k_tom_start_day", day_text(t)) or day_text(t) }
 	end
 	return out
 end
@@ -662,23 +690,26 @@ end
 -- One line for a round's timetable change.
 function F.describe_timing(t, form)
 	if not F.timing_override(t, form) then
-		return "as the timetable"
+		return TOM.T("k_tom_as_timetable")
 	end
 	local parts = {}
 	if t.start == "at" and form then
-		parts[#parts + 1] = "continues " .. F.when_text(F.round_start_at(t, form))
+		parts[#parts + 1] = TOM.T("k_tom_continues", F.when_text(F.round_start_at(t, form)))
+		if t.checkInMinutes then
+			parts[#parts + 1] = TOM.T("k_tom_round_check_in_part", F.label(t, "checkInMinutes", F.TIMING.checkInMinutes))
+		end
 	elseif t.start == "manual" then
-		parts[#parts + 1] = "you start it"
+		parts[#parts + 1] = TOM.T("k_tom_you_start_it")
 	elseif t.breakBefore then
-		parts[#parts + 1] = F.label(t, "breakBefore", F.TIMING.breakBefore) .. " break first"
+		parts[#parts + 1] = TOM.T("k_tom_break_first", F.label(t, "breakBefore", F.TIMING.breakBefore))
 	end
 	if t.play == "live" then
-		parts[#parts + 1] = "live, " .. F.label(t, "readyUpMinutes") .. " to ready up"
+		parts[#parts + 1] = TOM.T("k_tom_live_ready_up", F.label(t, "readyUpMinutes"))
 	elseif t.play == "window" then
-		parts[#parts + 1] = "by a deadline, " .. F.label(t, "windowMinutes")
+		parts[#parts + 1] = TOM.T("k_tom_by_deadline", F.label(t, "windowMinutes"))
 	end
 	if t.onward and t.play then
-		parts[#parts + 1] = "and every later round"
+		parts[#parts + 1] = TOM.T("k_tom_every_later_round")
 	end
 	return table.concat(parts, "; ")
 end
@@ -767,6 +798,7 @@ local function timing_of(t, start_date)
 		out.atHour = tostring(hour == 0 and 12 or hour)
 		out.atMinute = string.format("%02d", at.min)
 		out.atPm = at.hour >= 12
+		out.checkInMinutes = t.checkInMinutes or false
 	elseif t.manualStart then
 		out.start = "manual"
 	end
@@ -904,12 +936,12 @@ end
 
 -- The wizard's steps, and which fields each one checks.
 F.STEPS = {
-	{ key = "basics", title = "BASICS" },
-	{ key = "format", title = "FORMAT" },
-	{ key = "games", title = "GAMES" },
-	{ key = "rounds", title = "ROUNDS" },
-	{ key = "schedule", title = "SCHEDULE" },
-	{ key = "review", title = "REVIEW" },
+	{ key = "basics", title = "k_tom_step_basics" },
+	{ key = "format", title = "k_tom_step_format" },
+	{ key = "games", title = "k_tom_step_games" },
+	{ key = "rounds", title = "k_tom_step_rounds" },
+	{ key = "schedule", title = "k_tom_step_schedule" },
+	{ key = "review", title = "k_tom_step_review" },
 }
 
 -- What is still wrong on a step (or, with no step, anywhere): a list of
@@ -925,9 +957,9 @@ function F.problems(form, now_ms, step, opts)
 		end
 	end
 	local name = (form.name or ""):match("^%s*(.-)%s*$")
-	check("basics", #name >= 3, "The name needs at least 3 characters.")
-	check("basics", #name <= 48, "The name can be at most 48 characters.")
-	check("basics", #(form.description or "") <= 500, "The description can be at most 500 characters.")
+	check("basics", #name >= 3, TOM.T("k_tom_name_short"))
+	check("basics", #name <= 48, TOM.T("k_tom_name_long"))
+	check("basics", #(form.description or "") <= 500, TOM.T("k_tom_desc_long"))
 	-- The start comes from the date and time fields when the form has them.
 	local at, why = form.startsAt, nil
 	if form.date then
@@ -937,30 +969,38 @@ function F.problems(form, now_ms, step, opts)
 	if not opts.started then
 		check("basics", why == nil, why)
 	end
-	check("basics", start_fixed or not at or at >= now_ms + 5 * MINUTE, "The start must be at least 5 minutes away.")
-	check("basics", start_fixed or not at or at <= now_ms + 90 * DAY, "The start can be at most 90 days away.")
+	check("basics", start_fixed or not at or at >= now_ms + 5 * MINUTE, TOM.T("k_tom_start_too_soon"))
+	check("basics", start_fixed or not at or at <= now_ms + 90 * DAY, TOM.T("k_tom_start_too_far"))
 	check("format", not (form.format == "round_robin" and form.groupSize and form.groupSize > form.maxPlayers), "Groups can't be bigger than the tournament.")
 	check("games", form.deckKind ~= "draft" or F.pool_problem(form) == nil, form.deckKind == "draft" and F.pool_problem(form) or nil)
 	check("games", not (form.deckKind == "locked" and not form.deck), "Pick the deck everyone plays.")
 	local function mixed(settings)
 		return not F.uses_cocktail(settings) or #((settings.cocktail or {}).decks or {}) > 0
 	end
-	check("games", mixed(form), "Mix 1 to 3 decks for the Cocktail (MIX).")
-	-- A round that continues at a date and time: a real time, after the start.
+	check("games", mixed(form), TOM.T("k_tom_mix_needed"))
+	-- A round that continues at a date and time: a real time, after the
+	-- start, its check-in opening after the start too, and in round order.
+	-- (The server checks the same: lifecycle.ts timedRoundsFit.)
+	local previous = form.startsAt or 0
 	for _, key in ipairs(F.round_keys(form)) do
 		local t = form.timing and form.timing[key]
 		if t and t.start == "at" then
 			local at, why = F.round_start_at(t, form)
-			check("schedule", at ~= nil, why and ("A round's start: " .. why) or nil)
-			check("schedule", not at or at > (form.startsAt or 0), "A round can't continue before the tournament starts.")
+			check("schedule", at ~= nil, why and TOM.T("k_tom_round_start_problem", why) or nil)
+			check("schedule", not at or at > (form.startsAt or 0), TOM.T("k_tom_round_before_start"))
+			check("schedule", not (at and t.checkInMinutes) or at - t.checkInMinutes * MINUTE >= (form.startsAt or 0), TOM.T("k_tom_round_check_in_before_start"))
+			check("schedule", not at or at >= previous, TOM.T("k_tom_rounds_out_of_order"))
+			if at and at > previous then
+				previous = at
+			end
 		end
 	end
 	for _, round in pairs(form.rounds or {}) do
 		if round.deckKind == "draft" and F.pool_problem(round) then
-			check("rounds", false, "A round's pool: " .. F.pool_problem(round))
+			check("rounds", false, TOM.T("k_tom_round_pool_problem", F.pool_problem(round)))
 		end
 		if not mixed(round) then
-			check("rounds", false, "A round with the Cocktail needs 1 to 3 decks mixed (MIX).")
+			check("rounds", false, TOM.T("k_tom_round_mix_needed"))
 		end
 	end
 	return out

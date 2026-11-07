@@ -1,5 +1,6 @@
 -- Run from the repo root: lua5.4 tests/form_test.lua
 -- lib/form.lua: the create wizard's choices, checks and payload.
+dofile("lib/text.lua")
 dofile("lib/form.lua")
 local F = TOM.Form
 

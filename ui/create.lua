@@ -46,11 +46,11 @@ local function update_start_note()
 	end
 	local now = PVP.TournamentTime.now_ms()
 	if at < now + 5 * 60 * 1000 then
-		PVP.TUI.set_live(wizard.start_note, "That's too soon: at least 5 minutes from now.", G.C.RED)
+		PVP.TUI.set_live(wizard.start_note, TOM.T("k_tom_start_note_soon"), G.C.RED)
 		return
 	end
 	local left = PVP.TournamentTime.countdown(at)
-	PVP.TUI.set_live(wizard.start_note, (left and ("in " .. left .. ", ") or "") .. "your local time", G.C.UI.TEXT_INACTIVE)
+	PVP.TUI.set_live(wizard.start_note, left and TOM.T("k_tom_start_note_in", left) or TOM.T("k_tom_your_local_time"), G.C.UI.TEXT_INACTIVE)
 end
 
 local function TUI()
@@ -88,18 +88,18 @@ local function make_lists()
 end
 
 local PRESET_NOTES = {
-	live_event = { "Each match opens as soon as", "both of its players are known." },
-	live_fixed_rounds = { "Every round waits for you to press", "START ROUND on the manage page." },
-	league = { "Each round has a deadline; players", "play their match any time before it." },
+	live_event = "k_tom_help_preset_live_event",
+	live_fixed_rounds = "k_tom_help_preset_live_fixed_rounds",
+	league = "k_tom_help_preset_league",
 }
 
-local MONTHS = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" }
-local WEEKDAYS = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" }
+local MONTHS = { "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec" }
+local WEEKDAYS = { "sun", "mon", "tue", "wed", "thu", "fri", "sat" }
 
 -- "Fri, Nov 7, 2026"
 local function date_text(d)
 	local t = os.date("*t", os.time({ year = d.year, month = d.month, day = d.day, hour = 12 }))
-	return string.format("%s, %s %d, %d", WEEKDAYS[t.wday], MONTHS[t.month]:sub(1, 3), t.day, t.year)
+	return TOM.T("k_tom_date_full", TOM.T("k_tom_day_" .. WEEKDAYS[t.wday]), TOM.T("k_tom_month_" .. MONTHS[t.month]), t.day, t.year)
 end
 
 -- Date (opens the calendar), hour : minutes, AM/PM; all in local time.
@@ -109,7 +109,7 @@ local function start_row()
 		return { n = G.UIT.C, config = { align = "cm", padding = 0.02 }, nodes = { node } }
 	end
 	return {
-		UI.row("Starts", {
+		UI.row(TOM.T("k_tom_starts"), {
 			{
 				n = G.UIT.C,
 				config = { align = "cm", minw = 3.3, minh = 0.5, r = 0.08, colour = G.C.BLUE, hover = true, shadow = true, button = "tom_cal_open" },
@@ -122,7 +122,7 @@ local function start_row()
 			{
 				n = G.UIT.C,
 				config = { align = "cm", minw = 0.9, minh = 0.5, r = 0.08, colour = G.C.UI.BACKGROUND_INACTIVE, hover = true, shadow = true, button = "tom_create_ampm" },
-				nodes = { TUI().text(form.pm and "PM" or "AM", 0.32) },
+				nodes = { TUI().text(TOM.T(form.pm and "k_tom_pm" or "k_tom_am"), 0.32) },
 			},
 		}),
 		{ n = G.UIT.R, config = { align = "cl", padding = 0.02 }, nodes = { { n = G.UIT.C, config = { minw = UI.LABEL_W } }, TUI().live_text(wizard.start_note, TUI().SMALL) } },
@@ -136,62 +136,56 @@ local function step_rows(key)
 		rows[#rows + 1] = row
 	end
 	if key == "basics" then
-		add(UI.input("Name", "tom_create_name", "name", { prompt = "Tournament name", max_length = 48 }))
+		add(UI.input(TOM.T("k_tom_name"), "tom_create_name", "name", { prompt = TOM.T("k_tom_name_prompt"), max_length = 48 }))
 		-- The description is edited in its own overlay (several lines).
 		local desc = (form.description or ""):gsub("\n", "  ")
 		if #desc > 46 then
 			desc = desc:sub(1, 45) .. "..."
 		end
-		add(UI.row("Description", {
-			TUI().button("EDIT", "tom_create_desc_edit", nil, G.C.BLUE, 1.4, 0.3),
+		add(UI.row(TOM.T("k_tom_description"), {
+			TUI().button(TOM.T("k_tom_edit"), "tom_create_desc_edit", nil, G.C.BLUE, 1.4, 0.3),
 			TUI().spacer(0.1),
-			TUI().text(desc ~= "" and desc or "Optional: prizes, rules, Discord link...", TUI().SMALL, desc ~= "" and G.C.UI.TEXT_LIGHT or G.C.UI.TEXT_INACTIVE),
-		}, { "Shown on the tournament's DETAILS.", "Up to " .. (F.DESC_LINES * F.DESC_LINE) .. " characters, over " .. F.DESC_LINES .. " lines." }))
+			TUI().text(desc ~= "" and desc or TOM.T("k_tom_desc_placeholder"), TUI().SMALL, desc ~= "" and G.C.UI.TEXT_LIGHT or G.C.UI.TEXT_INACTIVE),
+		}, { TOM.T("k_tom_desc_help_1"), TOM.T("k_tom_desc_help_2", F.DESC_LINES * F.DESC_LINE, F.DESC_LINES) }))
 		if wizard.edit and wizard.edit.running then
-			add(UI.note("Running: only the name, description and round settings can change."))
+			add(UI.note(TOM.T("k_tom_running_only_the_name_description_an")))
 			return rows
 		end
-		add(UI.choice("Who can join", "visibility", nil, { "Public: listed in Browse for everyone.", "Private: hidden; players join with", "the invite code on the manage page." }))
+		add(UI.choice(TOM.T("k_tom_who_can_join"), "visibility", nil, UI.lines("k_tom_help_public_listed_in_browse_for_everyone")))
 		if UI.may_create_official() then
-			add(UI.switch("Official", "official", { "Shown with a gold OFFICIAL badge", "and listed first. Only players with", "the right to host them see this." }))
+			add(UI.switch(TOM.T("k_tom_official"), "official", UI.lines("k_tom_help_shown_with_a_gold_official_badge_and")))
 		end
-		add(UI.switch("Ranked profile only", "requireRanked", {
-			"Players need their ranked profile, as",
-			"for ranked matchmaking: Balatro started",
-			"through the launcher with ranked mods.",
-			"Checked when they sign up, check in",
-			"and ready up; they're warned early.",
-		}))
-		add(UI.choice("Players", "maxPlayers", nil, { "The most players who can join.", "Anyone after that goes on a waitlist;", "you move them in from the manage page." }))
+		add(UI.switch(TOM.T("k_tom_ranked_profile_only"), "requireRanked", UI.lines("k_tom_help_ranked_profile_only")))
+		add(UI.choice(TOM.T("k_tom_players"), "maxPlayers", nil, UI.lines("k_tom_help_the_most_players_who_can_join_anyone")))
 		for _, r in ipairs(start_row()) do
 			add(r)
 		end
-		add(UI.choice("Check-in", "checkInMinutes", nil, { "Players press CHECK IN in the minutes", "before the start to say they're there.", "Anyone who doesn't is left out", "of the bracket when it starts." }))
+		add(UI.choice(TOM.T("k_tom_check_in"), "checkInMinutes", nil, UI.lines("k_tom_help_players_press_check_in_in_the_minute")))
 	elseif key == "format" then
-		add(UI.choice("Format", "format"))
+		add(UI.choice(TOM.T("k_tom_format"), "format"))
 		if F.uses(form, "grandFinalReset") then
-			add(UI.choice("Grand final reset", "grandFinalReset", nil, { "If the player from the losers bracket", "wins the grand final, both have lost", "once: play one more match to decide." }))
+			add(UI.choice(TOM.T("k_tom_grand_final_reset"), "grandFinalReset", nil, UI.lines("k_tom_help_if_the_player_from_the_losers_bracke")))
 		elseif F.uses(form, "groupSize") then
-			add(UI.choice("Groups", "groupSize", nil, { "Everyone plays everyone else", "in their group once." }))
+			add(UI.choice(TOM.T("k_tom_groups"), "groupSize", nil, UI.lines("k_tom_help_everyone_plays_everyone_else_in_thei")))
 		elseif F.uses(form, "swissRounds") then
-			add(UI.choice("Rounds", "swissRounds", nil, { "Each round pairs players with the", "same score who haven't met yet.", "Automatic: enough rounds for", "one clear winner." }))
+			add(UI.choice(TOM.T("k_tom_rounds"), "swissRounds", nil, UI.lines("k_tom_help_each_round_pairs_players_with_the_sa")))
 		end
-		add(UI.choice("Seeding", "seeding", nil, { "Who is seed 1, 2, 3... Top seeds", "meet each other as late as possible.", "I set the order: arrange the players", "on the manage page before it starts." }))
+		add(UI.choice(TOM.T("k_tom_seeding"), "seeding", nil, UI.lines("k_tom_help_who_is_seed_1_2_3_top_seeds_meet_eac")))
 	elseif key == "games" then
-		add(UI.choice("Game type", "gameMode", "gameMode"))
-		add(UI.choice("Ruleset", "ruleset", "ruleset"))
-		add(UI.choice("Series", "bestOf", nil, { "How many games a match has:", "best of 3 = first to win 2." }))
-		add(UI.choice("Decks & stakes", "deckKind", nil, { "One deck: everyone plays the same", "deck and stake. Ban and pick: players", "take turns banning from a pool of", "decks and stakes; the last one left", "is played." }))
+		add(UI.choice(TOM.T("k_tom_game_type"), "gameMode", "gameMode"))
+		add(UI.choice(TOM.T("k_tom_ruleset"), "ruleset", "ruleset"))
+		add(UI.choice(TOM.T("k_tom_series"), "bestOf", nil, UI.lines("k_tom_help_how_many_games_a_match_has_best_of_3")))
+		add(UI.choice(TOM.T("k_tom_decks_stakes"), "deckKind", nil, UI.lines("k_tom_help_one_deck_everyone_plays_the_same_dec")))
 		if F.uses(form, "deck") then
-			add(UI.choice("Deck", "deck", "deck"))
-			add(UI.choice("Stake", "stake", "stake"))
+			add(UI.choice(TOM.T("k_tom_deck"), "deck", "deck"))
+			add(UI.choice(TOM.T("k_tom_stake"), "stake", "stake"))
 		elseif F.uses(form, "banOrder") then
 			add(TOM.Pools.row(form, function()
 				if wizard.el then
 					wizard.el:update()
 				end
 			end))
-			add(UI.choice("Ban order", "banOrder", nil, { "Who bans first in each match." }))
+			add(UI.choice(TOM.T("k_tom_ban_order"), "banOrder", nil, UI.lines("k_tom_help_who_bans_first_in_each_match")))
 		end
 		if UI.has_cocktail() then
 			for _, r in ipairs(UI.cocktail_rows(form, function()
@@ -222,15 +216,15 @@ local function step_rows(key)
 			add(r)
 		end
 	elseif key == "schedule" then
-		add(UI.choice("Timetable", "preset", nil, PRESET_NOTES[form.preset]))
+		add(UI.choice(TOM.T("k_tom_timetable"), "preset", nil, PRESET_NOTES[form.preset] and UI.lines(PRESET_NOTES[form.preset]) or nil))
 		if F.uses(form, "readyUpMinutes") then
-			add(UI.choice("Time to ready up", "readyUpMinutes", nil, { "Once a match opens, both players", "have this long to press READY.", "A player who isn't ready in time", "loses the match." }))
+			add(UI.choice(TOM.T("k_tom_time_to_ready_up"), "readyUpMinutes", nil, UI.lines("k_tom_help_once_a_match_opens_both_players_have")))
 		end
 		if F.uses(form, "breakMinutes") then
-			add(UI.choice("Breaks", "breakMinutes", nil, { "A pause between rounds. With a break,", "the next round waits until every", "match of the round before is done." }))
+			add(UI.choice(TOM.T("k_tom_breaks"), "breakMinutes", nil, UI.lines("k_tom_help_a_pause_between_rounds_with_a_break_")))
 		end
 		if F.uses(form, "windowMinutes") then
-			add(UI.choice("Time per round", "windowMinutes", nil, { "Players arrange a time themselves", "and play before the round's deadline." }))
+			add(UI.choice(TOM.T("k_tom_time_per_round"), "windowMinutes", nil, UI.lines("k_tom_help_players_arrange_a_time_themselves_an")))
 		end
 		local context = {
 			form = form,
@@ -249,41 +243,48 @@ local function step_rows(key)
 		local function line(label, value)
 			add(UI.row(label, { TUI().text(value, TUI().TEXT) }))
 		end
-		line("Name", form.name ~= "" and form.name or "-")
-		line("Who can join", F.label(form, "visibility") .. (form.official and ", OFFICIAL" or "") .. (form.requireRanked and ", ranked profile only" or ""))
-		line("Players", "up to " .. form.maxPlayers)
-		line("Starts", TT().format_local(form.startsAt) .. "  (" .. F.label(form, "checkInMinutes"):lower() .. ")")
+		line(TOM.T("k_tom_name"), form.name ~= "" and form.name or "-")
+		local who = F.label(form, "visibility")
+		if form.official then
+			who = TOM.T("k_tom_list2", who, TOM.T("k_tom_official_upper"))
+		end
+		if form.requireRanked then
+			who = TOM.T("k_tom_list2", who, TOM.T("k_tom_ranked_profile_only_lower"))
+		end
+		line(TOM.T("k_tom_who_can_join"), who)
+		line(TOM.T("k_tom_players"), TOM.T("k_tom_up_to_n", form.maxPlayers))
+		line(TOM.T("k_tom_starts"), TOM.T("k_tom_paren", TT().format_local(form.startsAt), F.label(form, "checkInMinutes"):lower()))
 		local format = F.label(form, "format")
 		if F.uses(form, "groupSize") and form.groupSize then
-			format = format .. ", " .. F.label(form, "groupSize"):lower()
+			format = TOM.T("k_tom_list2", format, F.label(form, "groupSize"):lower())
 		elseif F.uses(form, "swissRounds") and form.swissRounds then
-			format = format .. ", " .. form.swissRounds .. " rounds"
+			format = TOM.T("k_tom_list2", format, F.count(form.swissRounds, "k_tom_n_rounds"))
 		end
-		line("Format", format .. "; seeding " .. F.label(form, "seeding"):lower())
-		line("Games", F.label(form, "gameMode", lists.gameMode) .. ", " .. F.label(form, "ruleset", lists.ruleset) .. ", " .. F.label(form, "bestOf"):lower())
+		line(TOM.T("k_tom_format"), TOM.T("k_tom_review_format", format, F.label(form, "seeding"):lower()))
+		line(TOM.T("k_tom_games"), TOM.T("k_tom_list2", TOM.T("k_tom_list2", F.label(form, "gameMode", lists.gameMode), F.label(form, "ruleset", lists.ruleset)), F.label(form, "bestOf"):lower()))
 		local decks = F.label(form, "deckKind")
 		if F.uses(form, "deck") then
-			decks = F.label(form, "deck", lists.deck) .. " on " .. F.label(form, "stake", lists.stake) .. " stake"
+			decks = TOM.T("k_tom_deck_on_stake", F.label(form, "deck", lists.deck), F.label(form, "stake", lists.stake))
 		elseif F.uses(form, "banOrder") then
-			decks = "Ban and pick: " .. F.pool_text(form) .. "; " .. F.label(form, "banOrder"):lower()
+			decks = TOM.T("k_tom_review_pool", F.pool_text(form), F.label(form, "banOrder"):lower())
 		end
-		line("Decks & stakes", decks)
+		line(TOM.T("k_tom_decks_stakes"), decks)
 		local changed = {}
 		for _, k in ipairs(F.round_keys(form)) do
 			if F.round_override(form.rounds[k]) then
-				changed[#changed + 1] = k:match("^R(%d+)$") and ("round " .. k:sub(2)) or F.named_label(form.format, k):lower()
+				changed[#changed + 1] = k:match("^R(%d+)$") and TOM.T("k_tom_round_lower", k:sub(2)) or F.named_label(form.format, k):lower()
 			end
 		end
-		line("Rounds", #changed == 0 and "all play the defaults" or ("changed: " .. table.concat(changed, ", ")))
+		line(TOM.T("k_tom_rounds"), #changed == 0 and TOM.T("k_tom_all_defaults") or TOM.T("k_tom_changed", table.concat(changed, TOM.T("k_tom_sep"))))
 		local timing = {}
 		for _, k in ipairs(F.round_keys(form)) do
 			if F.timing_override(form.timing[k], form) then
-				timing[#timing + 1] = k:match("^R(%d+)$") and ("round " .. k:sub(2)) or F.named_label(form.format, k):lower()
+				timing[#timing + 1] = k:match("^R(%d+)$") and TOM.T("k_tom_round_lower", k:sub(2)) or F.named_label(form.format, k):lower()
 			end
 		end
-		line("Timetable", F.label(form, "preset") .. (#timing > 0 and ("; changed: " .. table.concat(timing, ", ")) or ""))
+		line(TOM.T("k_tom_timetable"), #timing > 0 and TOM.T("k_tom_preset_changed", F.label(form, "preset"), table.concat(timing, TOM.T("k_tom_sep"))) or F.label(form, "preset"))
 		if not wizard.edit then
-			add(UI.note("Registration opens as soon as you create it. You can still cancel it."))
+			add(UI.note(TOM.T("k_tom_registration_opens_as_soon_as_you_cr")))
 		end
 	end
 	return rows
@@ -300,7 +301,7 @@ local function step_bar()
 				{
 					n = G.UIT.C,
 					config = { align = "cm", minw = 1.85, minh = 0.45, r = 0.08, colour = current and G.C.PURPLE or G.C.UI.BACKGROUND_INACTIVE, hover = true, button = "tom_create_goto", ref_table = { step = i } },
-					nodes = { TUI().text(i .. ". " .. s.title, 0.3, current and G.C.UI.TEXT_LIGHT or G.C.UI.TEXT_INACTIVE) },
+					nodes = { TUI().text(i .. ". " .. F.text(s.title), 0.3, current and G.C.UI.TEXT_LIGHT or G.C.UI.TEXT_INACTIVE) },
 				},
 			},
 		}
@@ -324,9 +325,9 @@ local function build()
 			n = G.UIT.R,
 			config = { align = "cm", padding = 0.04 },
 			nodes = {
-				{ n = G.UIT.C, config = { align = "cl", minw = 3.4 }, nodes = { TUI().button("LOAD TEMPLATE", "tom_create_load_template", nil, G.C.UI.BACKGROUND_INACTIVE, 2.9, 0.28) } },
+				{ n = G.UIT.C, config = { align = "cl", minw = 3.4 }, nodes = { TUI().button(TOM.T("k_tom_load_template"), "tom_create_load_template", nil, G.C.UI.BACKGROUND_INACTIVE, 2.9, 0.28) } },
 				{ n = G.UIT.C, config = { align = "cm", minw = 4.8 }, nodes = { TUI().text(wizard.edit and "EDIT TOURNAMENT" or "NEW TOURNAMENT", 0.45, G.C.PURPLE) } },
-				{ n = G.UIT.C, config = { align = "cr", minw = 3.4 }, nodes = { TUI().button("SAVE TEMPLATE", "tom_create_save_template", nil, G.C.UI.BACKGROUND_INACTIVE, 2.9, 0.28) } },
+				{ n = G.UIT.C, config = { align = "cr", minw = 3.4 }, nodes = { TUI().button(TOM.T("k_tom_save_template"), "tom_create_save_template", nil, G.C.UI.BACKGROUND_INACTIVE, 2.9, 0.28) } },
 			},
 		},
 		step_bar(),
@@ -334,7 +335,7 @@ local function build()
 	local form_rows = step_rows(step.key)
 	body[#body + 1] = { n = G.UIT.R, config = { align = "tm", padding = 0.1, minh = 4.6, minw = 11.6, r = 0.1, colour = mix_colours(G.C.BLACK, G.C.L_BLACK, 0.5) }, nodes = { { n = G.UIT.C, config = { align = "tl" }, nodes = form_rows } } }
 	local problems = problems(not last and step.key or nil)
-	local message = wizard.error or (wizard.busy and "Creating...") or (last and problems[1]) or wizard.warning
+	local message = wizard.error or (wizard.busy and TOM.T("k_tom_creating")) or (last and problems[1]) or wizard.warning
 	if message then
 		body[#body + 1] = TUI().message(message, wizard.error and G.C.RED or G.C.UI.TEXT_INACTIVE)
 	end
@@ -345,7 +346,7 @@ local function build()
 	if last then
 		buttons[#buttons + 1] = TUI().button(wizard.edit and "SAVE CHANGES" or "CREATE", "tom_create_submit", nil, (#problems == 0 and not wizard.busy) and G.C.GREEN or G.C.UI.BACKGROUND_INACTIVE, 2.4)
 	else
-		buttons[#buttons + 1] = TUI().button("NEXT", "tom_create_next", nil, G.C.BLUE, 2.4)
+		buttons[#buttons + 1] = TUI().button(TOM.T("k_tom_next"), "tom_create_next", nil, G.C.BLUE, 2.4)
 	end
 	body[#body + 1] = TUI().hbox(buttons, "cm", 0.05)
 	return { n = G.UIT.ROOT, config = { align = "cm", colour = G.C.CLEAR }, nodes = { TUI().panel(body, { align = "cm", minw = 12.4 }) } }
@@ -426,8 +427,8 @@ G.FUNCS.tom_create_desc_edit = function()
 	end
 	UI.target = { form = desc_edit, lists = {}, on_change = function() end }
 	local rows = {
-		{ n = G.UIT.R, config = { align = "cm", padding = 0.08 }, nodes = { TUI().text("DESCRIPTION", 0.45, G.C.PURPLE) } },
-		{ n = G.UIT.R, config = { align = "cm", padding = 0.02 }, nodes = { TUI().text("Up to " .. F.DESC_LINES .. " lines of " .. F.DESC_LINE .. " characters. Ctrl+V pastes.", TUI().SMALL, G.C.UI.TEXT_INACTIVE) } },
+		{ n = G.UIT.R, config = { align = "cm", padding = 0.08 }, nodes = { TUI().text(TOM.T("k_tom_description_2"), 0.45, G.C.PURPLE) } },
+		{ n = G.UIT.R, config = { align = "cm", padding = 0.02 }, nodes = { TUI().text(TOM.T("k_tom_lines_of", F.DESC_LINES, F.DESC_LINE), TUI().SMALL, G.C.UI.TEXT_INACTIVE) } },
 	}
 	for i = 1, F.DESC_LINES do
 		rows[#rows + 1] = {
@@ -437,9 +438,9 @@ G.FUNCS.tom_create_desc_edit = function()
 		}
 	end
 	rows[#rows + 1] = TUI().hbox({
-		TUI().button("CLEAR", "tom_create_desc_clear", nil, G.C.RED, 1.8),
+		TUI().button(TOM.T("k_tom_clear"), "tom_create_desc_clear", nil, G.C.RED, 1.8),
 		TUI().spacer(6.0),
-		TUI().button("DONE", "tom_create_desc_done", nil, G.C.GREEN, 2.2),
+		TUI().button(TOM.T("k_tom_done"), "tom_create_desc_done", nil, G.C.GREEN, 2.2),
 	}, "cm", 0.1)
 	G.FUNCS.overlay_menu({
 		definition = create_UIBox_generic_options({
@@ -486,7 +487,7 @@ G.FUNCS.tom_create_load_template = function()
 		wizard.form = form
 		wizard.step = 1
 		wizard.error = nil
-		wizard.warning = "Loaded the template " .. name .. (skipped and skipped > 0 and (" (" .. skipped .. " setting(s) it had were skipped)") or "") .. "."
+		wizard.warning = skipped and skipped > 0 and TOM.T("k_tom_loaded_template_skipped", name, skipped) or TOM.T("k_tom_loaded_template", name)
 		rebuild()
 	end, function()
 		rebuild()
@@ -526,14 +527,14 @@ local function calendar_contents()
 			config = { align = "cm", padding = 0.06 },
 			nodes = {
 				nav("<", -1, can_back),
-				{ n = G.UIT.C, config = { align = "cm", minw = 4.2 }, nodes = { TUI().text(MONTHS[m] .. " " .. y, 0.42) } },
+				{ n = G.UIT.C, config = { align = "cm", minw = 4.2 }, nodes = { TUI().text(TOM.T("k_tom_month_year", TOM.T("k_tom_month_long_" .. MONTHS[m]), y), 0.42) } },
 				nav(">", 1, can_forward),
 			},
 		},
 	}
 	local head = {}
-	for _, d in ipairs({ "Mo", "Tu", "We", "Th", "Fr", "Sa", "Su" }) do
-		head[#head + 1] = { n = G.UIT.C, config = { align = "cm", minw = 0.8, padding = 0.03 }, nodes = { TUI().text(d, 0.28, G.C.UI.TEXT_INACTIVE) } }
+	for _, d in ipairs({ "mon", "tue", "wed", "thu", "fri", "sat", "sun" }) do
+		head[#head + 1] = { n = G.UIT.C, config = { align = "cm", minw = 0.8, padding = 0.03 }, nodes = { TUI().text(TOM.T("k_tom_day_short_" .. d), 0.28, G.C.UI.TEXT_INACTIVE) } }
 	end
 	rows[#rows + 1] = { n = G.UIT.R, config = { align = "cm" }, nodes = head }
 	for _, week in ipairs(F.month_grid(y, m)) do
@@ -677,7 +678,7 @@ local function save_edit()
 	local e = wizard.edit
 	local changes = F.changes(e.original, F.payload(wizard.form, UI.decks()), e.running)
 	if not changes then
-		wizard.warning = "Nothing changed."
+		wizard.warning = TOM.T("k_tom_nothing_changed")
 		rebuild()
 		return
 	end
@@ -694,7 +695,7 @@ local function save_edit()
 		local id = e.id
 		wizard.form, wizard.edit = nil, nil
 		PVP.Tournaments.refresh()
-		TOM.open_manage(id, "Saved.")
+		TOM.open_manage(id, TOM.T("k_tom_saved"))
 	end)
 end
 
@@ -713,7 +714,7 @@ G.FUNCS.tom_create_submit = function()
 	PVP.Tournaments.call("tournament_create", payload, function(err, data)
 		local t = not err and data and data.tournament
 		if not t then
-			wizard.busy, wizard.error = false, UI.error_text(err or "The server sent no tournament")
+			wizard.busy, wizard.error = false, UI.error_text(err or TOM.T("k_tom_no_tournament_sent"))
 			rebuild()
 			return
 		end
@@ -722,7 +723,7 @@ G.FUNCS.tom_create_submit = function()
 			wizard.busy = false
 			wizard.form = nil
 			PVP.Tournaments.refresh()
-			TOM.open_manage(id, open_err and ("Created, but registration didn't open: " .. UI.error_text(open_err)) or nil)
+			TOM.open_manage(id, open_err and TOM.T("k_tom_created_not_open", UI.error_text(open_err)) or nil)
 		end)
 	end)
 end

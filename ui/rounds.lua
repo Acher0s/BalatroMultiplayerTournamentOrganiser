@@ -28,10 +28,10 @@ local function preview_choices(max)
 	local out = {}
 	for _, n in ipairs({ 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128 }) do
 		if n < max then
-			out[#out + 1] = { n, n .. " players" }
+			out[#out + 1] = { n, TOM.T("k_tom_n_players", n) }
 		end
 	end
-	out[#out + 1] = { max, max .. " players" }
+	out[#out + 1] = { max, TOM.T("k_tom_n_players", max) }
 	return out
 end
 
@@ -61,14 +61,14 @@ local function items()
 	local out = {}
 	for n = 1, most do
 		local p = plan[n]
-		out[#out + 1] = { key = "R" .. n, title = "Round " .. n, plan = p or { n = n, names = {} }, played = p ~= nil }
+		out[#out + 1] = { key = "R" .. n, title = TOM.T("k_tom_round_n", n), plan = p or { n = n, names = {} }, played = p ~= nil }
 	end
 	local named = F.NAMED[form.format]
 	if named then
-		out[#out + 1] = { heading = "Named rounds (win over the round number)" }
+		out[#out + 1] = { heading = TOM.T("k_tom_named_rounds") }
 		for _, entry in ipairs(named) do
 			-- Shown with its own settings only (on top of the defaults).
-			out[#out + 1] = { key = entry[1], title = entry[2], named = true }
+			out[#out + 1] = { key = entry[1], title = TOM.Form.text(entry[2]), named = true }
 		end
 	end
 	return out
@@ -87,7 +87,7 @@ local function row(item)
 	else
 		summary = F.describe(F.effective(form, item.plan), form, ctx.lists)
 		if not item.played then
-			tag = "not played with " .. form.previewPlayers
+			tag = TOM.T("k_tom_not_played_with", form.previewPlayers)
 		elseif #item.plan.names > 0 then
 			tag = "= " .. names_text(form.format, item.plan.names)
 		end
@@ -104,7 +104,7 @@ local function row(item)
 		nodes = {
 			{ n = G.UIT.C, config = { align = "cl", minw = 4.2, padding = 0.04 }, nodes = { { n = G.UIT.R, config = { align = "cl" }, nodes = title_nodes } } },
 			{ n = G.UIT.C, config = { align = "cl", minw = 5.2 }, nodes = { TUI().text(summary, TUI().SMALL, item.played == false and G.C.UI.TEXT_INACTIVE or G.C.UI.TEXT_LIGHT) } },
-			{ n = G.UIT.C, config = { align = "cr", minw = 1.6 }, nodes = { TUI().button("EDIT", "tom_round_edit", { key = item.key, title = item.title }, G.C.BLUE, 1.2, 0.28) } },
+			{ n = G.UIT.C, config = { align = "cr", minw = 1.6 }, nodes = { TUI().button(TOM.T("k_tom_edit"), "tom_round_edit", { key = item.key, title = item.title }, G.C.BLUE, 1.2, 0.28) } },
 		},
 	}
 end
@@ -114,18 +114,12 @@ function RS.rows(context)
 	ctx = context
 	local form = ctx.form
 	if not list then
-		list = TUI().scroll_list({ items = items, build_row = row, visible = 6, row_h = 0.52, width = ROW_W, empty = "This format has no rounds to set." })
+		list = TUI().scroll_list({ items = items, build_row = row, visible = 6, row_h = 0.52, width = ROW_W, empty = TOM.T("k_tom_no_rounds_to_set") })
 	end
 	local rows = {}
 	ctx.lists.previewPlayers = preview_choices(form.maxPlayers)
 	preview_players(form)
-	rows[#rows + 1] = UI.choice("Preview with", "previewPlayers", "previewPlayers", {
-		"Which rounds are played, and which",
-		"of them are the finals, with this many",
-		"players. Only for this view: the real",
-		"number is known when it starts.",
-		"BRACKET shows it with dummy players.",
-	}, { TUI().button("BRACKET", "tom_round_bracket", nil, G.C.BLUE, 1.8, 0.3) })
+	rows[#rows + 1] = UI.choice(TOM.T("k_tom_preview_with"), "previewPlayers", "previewPlayers", UI.lines("k_tom_help_which_rounds_are_played_and_which"), { TUI().button(TOM.T("k_tom_bracket"), "tom_round_bracket", nil, G.C.BLUE, 1.8, 0.3) })
 	rows[#rows + 1] = { n = G.UIT.R, config = { align = "cm", padding = 0.04 }, nodes = { list.el.node } }
 	return rows
 end
@@ -148,7 +142,7 @@ local function fetch_preview(step, done)
 	PVP.Tournaments.call("tournament_preview", body, function(err, data)
 		if err or not data or not data.tournament then
 			if ctx and ctx.say then
-				ctx.say("Couldn't preview: " .. UI.error_text(err or "no answer"))
+				ctx.say(TOM.T("k_tom_preview_failed", UI.error_text(err or TOM.T("k_tom_no_answer"))))
 			end
 			return
 		end
@@ -167,7 +161,7 @@ G.FUNCS.tom_round_bracket = function()
 			view = data.tournament,
 			step = data.step,
 			steps = data.steps,
-			title = "PREVIEW: " .. players .. " PLAYERS",
+			title = TOM.T("k_tom_preview_title", players),
 			on_step = function(delta)
 				local want = math.max(0, math.min(spec.steps, spec.step + delta))
 				if want == spec.step then
@@ -184,7 +178,7 @@ end
 
 -- The editor ---------------------------------------------------------------
 
-local SAME = { false, "Same as defaults" }
+local SAME = { false, "k_tom_opt_same_as_defaults" }
 
 local function with_same(entries)
 	local out = { SAME }
@@ -199,7 +193,7 @@ local function editor_lists()
 		gameMode = with_same(ctx.lists.gameMode),
 		ruleset = with_same(ctx.lists.ruleset),
 		bestOf = with_same(F.CHOICES.bestOf),
-		deckKind = { SAME, { "locked", "One deck for everyone" }, { "draft", "Ban and pick from a pool" } },
+		deckKind = { SAME, { "locked", "k_tom_opt_one_deck_for_everyone" }, { "draft", "k_tom_opt_ban_and_pick_from_a_pool" } },
 		deck = ctx.lists.deck,
 		stake = ctx.lists.stake,
 		banOrder = F.CHOICES.banOrder,
@@ -252,23 +246,19 @@ local function editor_contents()
 	}
 	local rows = {
 		{ n = G.UIT.R, config = { align = "cm", padding = 0.08 }, nodes = { TUI().text(string.upper(editing.title), 0.45, G.C.PURPLE) } },
-		UI.choice("Game type", "gameMode", "gameMode"),
-		UI.choice("Ruleset", "ruleset", "ruleset"),
-		UI.choice("Series", "bestOf", "bestOf"),
-		UI.choice("Decks & stakes", "deckKind", "deckKind", {
-			"Same as defaults: what the GAMES step set.",
-			"A round can't go back to players",
-			"picking their own deck.",
-		}),
+		UI.choice(TOM.T("k_tom_game_type"), "gameMode", "gameMode"),
+		UI.choice(TOM.T("k_tom_ruleset"), "ruleset", "ruleset"),
+		UI.choice(TOM.T("k_tom_series"), "bestOf", "bestOf"),
+		UI.choice(TOM.T("k_tom_decks_stakes"), "deckKind", "deckKind", UI.lines("k_tom_help_same_as_defaults_what_the_games_step")),
 	}
 	if round.deckKind == "locked" then
-		rows[#rows + 1] = UI.choice("Deck", "deck", "deck")
-		rows[#rows + 1] = UI.choice("Stake", "stake", "stake")
+		rows[#rows + 1] = UI.choice(TOM.T("k_tom_deck"), "deck", "deck")
+		rows[#rows + 1] = UI.choice(TOM.T("k_tom_stake"), "stake", "stake")
 	elseif round.deckKind == "draft" then
 		rows[#rows + 1] = TOM.Pools.row(round, function()
 			open_editor()
 		end)
-		rows[#rows + 1] = UI.choice("Ban order", "banOrder", "banOrder")
+		rows[#rows + 1] = UI.choice(TOM.T("k_tom_ban_order"), "banOrder", "banOrder")
 	end
 	if UI.has_cocktail() then
 		for _, r in ipairs(UI.cocktail_rows(round, function()
@@ -302,12 +292,12 @@ local function editor_contents()
 		if #line > 0 then
 			lines[#lines + 1] = { n = G.UIT.R, config = { align = "cl" }, nodes = line }
 		end
-		rows[#rows + 1] = UI.row("Copy from", { { n = G.UIT.C, config = { align = "cl" }, nodes = lines } })
+		rows[#rows + 1] = UI.row(TOM.T("k_tom_copy_from"), { { n = G.UIT.C, config = { align = "cl" }, nodes = lines } })
 	end
 	rows[#rows + 1] = TUI().hbox({
-		TUI().button("RESET", "tom_round_reset", nil, G.C.RED, 1.8),
+		TUI().button(TOM.T("k_tom_reset"), "tom_round_reset", nil, G.C.RED, 1.8),
 		TUI().spacer(3.0),
-		TUI().button("DONE", "tom_round_done", nil, G.C.GREEN, 2.2),
+		TUI().button(TOM.T("k_tom_done"), "tom_round_done", nil, G.C.GREEN, 2.2),
 	}, "cm", 0.1)
 	return rows
 end

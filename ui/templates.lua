@@ -57,16 +57,16 @@ end
 function TP.save(form, name)
 	local lib = json()
 	if not lib then
-		return "Couldn't save: no JSON library."
+		return TOM.T("k_tom_save_no_json")
 	end
 	love.filesystem.createDirectory(TP.FOLDER)
 	local ok, text = pcall(lib.encode, T.from_form(form, name))
 	if not ok then
-		return "Couldn't save: " .. tostring(text)
+		return TOM.T("k_tom_save_failed", tostring(text))
 	end
 	local written, err = love.filesystem.write(path_of(T.file_name(name)), text)
 	if not written then
-		return "Couldn't save: " .. tostring(err)
+		return TOM.T("k_tom_save_failed", tostring(err))
 	end
 	return nil
 end
@@ -76,11 +76,11 @@ function TP.load(file, now_ms)
 	local lib = json()
 	local text = love.filesystem.read(path_of(file))
 	if not lib or not text then
-		return nil, "Couldn't read " .. file .. "."
+		return nil, TOM.T("k_tom_read_failed", file)
 	end
 	local ok, data = pcall(lib.decode, text)
 	if not ok then
-		return nil, file .. " isn't valid JSON."
+		return nil, TOM.T("k_tom_not_json", file)
 	end
 	return T.to_form(data, now_ms)
 end
@@ -121,19 +121,19 @@ local function save_contents()
 	UI.target = { form = state, lists = {}, on_change = refresh }
 	local exists = love.filesystem.getInfo(path_of(T.file_name(state.name))) ~= nil
 	local rows = {
-		{ n = G.UIT.R, config = { align = "cm", padding = 0.08 }, nodes = { TUI().text("SAVE TEMPLATE", 0.45, G.C.PURPLE) } },
-		{ n = G.UIT.R, config = { align = "cm", padding = 0.02 }, nodes = { TUI().text("Every setting but the date: start your next one from it.", TUI().SMALL, G.C.UI.TEXT_INACTIVE) } },
-		UI.input("Template name", "tom_template_name", "name", { prompt = "e.g. Friday Weekly", max_length = 40, w = 5.4 }),
+		{ n = G.UIT.R, config = { align = "cm", padding = 0.08 }, nodes = { TUI().text(TOM.T("k_tom_save_template"), 0.45, G.C.PURPLE) } },
+		{ n = G.UIT.R, config = { align = "cm", padding = 0.02 }, nodes = { TUI().text(TOM.T("k_tom_every_setting_but_the_date_start_you"), TUI().SMALL, G.C.UI.TEXT_INACTIVE) } },
+		UI.input(TOM.T("k_tom_template_name"), "tom_template_name", "name", { prompt = "e.g. Friday Weekly", max_length = 40, w = 5.4 }),
 	}
 	local m = message_row()
 	if m then
 		rows[#rows + 1] = m
 	elseif exists then
-		rows[#rows + 1] = { n = G.UIT.R, config = { align = "cm", padding = 0.04 }, nodes = { TUI().text("A template with this name exists: saving replaces it.", TUI().SMALL, G.C.ORANGE) } }
+		rows[#rows + 1] = { n = G.UIT.R, config = { align = "cm", padding = 0.04 }, nodes = { TUI().text(TOM.T("k_tom_a_template_with_this_name_exists_sav"), TUI().SMALL, G.C.ORANGE) } }
 	end
 	rows[#rows + 1] = TUI().hbox({
-		TUI().button("CANCEL", "tom_template_close", nil, G.C.ORANGE, 1.8),
-		TUI().button("OPEN FOLDER", "tom_template_folder", nil, G.C.UI.BACKGROUND_INACTIVE, 2.4),
+		TUI().button(TOM.T("k_tom_cancel"), "tom_template_close", nil, G.C.ORANGE, 1.8),
+		TUI().button(TOM.T("k_tom_open_folder"), "tom_template_folder", nil, G.C.UI.BACKGROUND_INACTIVE, 2.4),
 		TUI().spacer(0.6),
 		TUI().button(state.confirm and "SURE? REPLACE" or "SAVE", "tom_template_save", nil, G.C.GREEN, 2.6),
 	}, "cm", 0.06)
@@ -145,10 +145,10 @@ local function load_contents()
 	local pages = math.max(1, math.ceil(#templates / PER_PAGE))
 	state.page = math.max(1, math.min(state.page or 1, pages))
 	local rows = {
-		{ n = G.UIT.R, config = { align = "cm", padding = 0.08 }, nodes = { TUI().text("LOAD TEMPLATE", 0.45, G.C.PURPLE) } },
+		{ n = G.UIT.R, config = { align = "cm", padding = 0.08 }, nodes = { TUI().text(TOM.T("k_tom_load_template"), 0.45, G.C.PURPLE) } },
 	}
 	if #templates == 0 then
-		rows[#rows + 1] = { n = G.UIT.R, config = { align = "cm", padding = 0.1 }, nodes = { TUI().text("No templates yet: save one from the wizard.", TUI().TEXT, G.C.UI.TEXT_INACTIVE) } }
+		rows[#rows + 1] = { n = G.UIT.R, config = { align = "cm", padding = 0.1 }, nodes = { TUI().text(TOM.T("k_tom_no_templates_yet_save_one_from_the_w"), TUI().TEXT, G.C.UI.TEXT_INACTIVE) } }
 	end
 	for i = (state.page - 1) * PER_PAGE + 1, math.min(#templates, state.page * PER_PAGE) do
 		local t = templates[i]
@@ -158,7 +158,7 @@ local function load_contents()
 			config = { align = "cm", padding = 0.03 },
 			nodes = {
 				{ n = G.UIT.C, config = { align = "cl", minw = 6.0 }, nodes = { TUI().text(t.name, TUI().TEXT) } },
-				{ n = G.UIT.C, config = { align = "cm", padding = 0.02 }, nodes = { TUI().button("LOAD", "tom_template_load", { file = t.file }, G.C.GREEN, 1.4, 0.3) } },
+				{ n = G.UIT.C, config = { align = "cm", padding = 0.02 }, nodes = { TUI().button(TOM.T("k_tom_load"), "tom_template_load", { file = t.file }, G.C.GREEN, 1.4, 0.3) } },
 				{ n = G.UIT.C, config = { align = "cm", padding = 0.02 }, nodes = { TUI().button(sure and "SURE?" or "DELETE", "tom_template_delete", { file = t.file }, G.C.RED, 1.4, 0.3) } },
 			},
 		}
@@ -175,8 +175,8 @@ local function load_contents()
 		rows[#rows + 1] = m
 	end
 	rows[#rows + 1] = TUI().hbox({
-		TUI().button("CANCEL", "tom_template_close", nil, G.C.ORANGE, 1.8),
-		TUI().button("OPEN FOLDER", "tom_template_folder", nil, G.C.UI.BACKGROUND_INACTIVE, 2.4),
+		TUI().button(TOM.T("k_tom_cancel"), "tom_template_close", nil, G.C.ORANGE, 1.8),
+		TUI().button(TOM.T("k_tom_open_folder"), "tom_template_folder", nil, G.C.UI.BACKGROUND_INACTIVE, 2.4),
 	}, "cm", 0.06)
 	return rows
 end
@@ -217,7 +217,7 @@ G.FUNCS.tom_template_save = function()
 	end
 	local name = (state.name or ""):match("^%s*(.-)%s*$")
 	if name == "" then
-		state.message, state.message_colour = "Give the template a name.", G.C.RED
+		state.message, state.message_colour = TOM.T("k_tom_template_needs_name"), G.C.RED
 		refresh()
 		return
 	end
@@ -233,7 +233,7 @@ G.FUNCS.tom_template_save = function()
 		refresh()
 		return
 	end
-	close("Saved the template " .. T.file_name(name) .. ".")
+	close(TOM.T("k_tom_template_saved", T.file_name(name)))
 end
 
 G.FUNCS.tom_template_load = function(e)
@@ -267,7 +267,7 @@ G.FUNCS.tom_template_delete = function(e)
 	end
 	love.filesystem.remove(path_of(file))
 	state.confirm = nil
-	state.message, state.message_colour = "Deleted " .. file .. ".", G.C.UI.TEXT_INACTIVE
+	state.message, state.message_colour = TOM.T("k_tom_template_deleted", file), G.C.UI.TEXT_INACTIVE
 	refresh()
 end
 

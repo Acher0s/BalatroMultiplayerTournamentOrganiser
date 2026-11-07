@@ -1,5 +1,6 @@
 -- Run from the repo root: lua5.4 tests/template_test.lua
 -- lib/template.lua: saving a wizard form as a template and loading it back.
+dofile("lib/text.lua")
 dofile("lib/form.lua")
 dofile("lib/template.lua")
 local F, T = TOM.Form, TOM.Template

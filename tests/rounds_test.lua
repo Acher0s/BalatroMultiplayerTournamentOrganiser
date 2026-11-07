@@ -1,5 +1,6 @@
 -- Run from the repo root: lua5.4 tests/rounds_test.lua
 -- lib/form.lua's rounds: the plan for a player count, layering, overrides.
+dofile("lib/text.lua")
 dofile("lib/form.lua")
 local F = TOM.Form
 
@@ -119,7 +120,7 @@ c.poolDecks = { "b_mp_orange" }
 c.poolCocktails = { { name = "", decks = { "b_red", "b_blue" } }, { name = "Mix", decks = { "b_black" } } }
 pd = F.payload(c, { "b_red", "b_blue" }).rounds.defaults.deck
 check("pool chosen", #pd.decks == 1 and pd.decks[1] == "b_mp_orange" and #pd.cocktails == 2 and pd.cocktails[2].name == "Mix")
-check("pool text 2", F.pool_text(c) == "1 decks + 2 Cocktails, 1 stake", F.pool_text(c))
+check("pool text 2", F.pool_text(c) == "1 deck + 2 Cocktails, 1 stake", F.pool_text(c))
 c.poolCocktails[2].decks = {}
 check("pool cocktail needs decks", (F.problems(c, 1800000000000, "games")[1] or ""):find("mixes nothing") ~= nil)
 c.poolCocktails = {}

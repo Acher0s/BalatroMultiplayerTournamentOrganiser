@@ -46,9 +46,9 @@ local function contents()
 	-- The name box writes into the recipe.
 	UI.target = { form = recipe, lists = {}, on_change = CK.refresh }
 	local rows = {
-		{ n = G.UIT.R, config = { align = "cm", padding = 0.08 }, nodes = { TUI().text("MIX A COCKTAIL", 0.45, G.C.PURPLE) } },
-		{ n = G.UIT.R, config = { align = "cm", padding = 0.02 }, nodes = { TUI().text("The Cocktail deck plays up to " .. F.COCKTAIL_MAX .. " decks at once.", TUI().SMALL, G.C.UI.TEXT_INACTIVE) } },
-		UI.input("Name", "tom_cocktail_name", "name", { prompt = "Optional name", max_length = 32, w = 5.0 }),
+		{ n = G.UIT.R, config = { align = "cm", padding = 0.08 }, nodes = { TUI().text(TOM.T("k_tom_mix_a_cocktail"), 0.45, G.C.PURPLE) } },
+		{ n = G.UIT.R, config = { align = "cm", padding = 0.02 }, nodes = { TUI().text(TOM.T("k_tom_cocktail_plays_up_to", F.COCKTAIL_MAX), TUI().SMALL, G.C.UI.TEXT_INACTIVE) } },
+		UI.input(TOM.T("k_tom_name"), "tom_cocktail_name", "name", { prompt = "Optional name", max_length = 32, w = 5.0 }),
 	}
 	local line = {}
 	local function flush()
@@ -78,9 +78,9 @@ local function contents()
 	flush()
 	rows[#rows + 1] = { n = G.UIT.R, config = { align = "cm", padding = 0.06 }, nodes = { TUI().text(CK.summary(recipe) or "Nothing mixed yet.", TUI().TEXT, #recipe.decks > 0 and G.C.GOLD or G.C.UI.TEXT_INACTIVE) } }
 	rows[#rows + 1] = TUI().hbox({
-		TUI().button("CLEAR", "tom_cocktail_clear", nil, G.C.RED, 1.6),
+		TUI().button(TOM.T("k_tom_clear"), "tom_cocktail_clear", nil, G.C.RED, 1.6),
 		TUI().spacer(1.0),
-		TUI().button("DONE", "tom_cocktail_done", nil, G.C.GREEN, 2.2),
+		TUI().button(TOM.T("k_tom_done"), "tom_cocktail_done", nil, G.C.GREEN, 2.2),
 	}, "cm", 0.06)
 	return rows
 end

@@ -1,5 +1,6 @@
 -- Run from the repo root: lua5.4 tests/timing_test.lua
 -- lib/form.lua's timetable round by round, and templates keeping it.
+dofile("lib/text.lua")
 dofile("lib/form.lua")
 dofile("lib/template.lua")
 local F, T = TOM.Form, TOM.Template
@@ -52,6 +53,26 @@ check("at bad hour", (F.problems(form, NOW, "schedule")[1] or ""):find("hour") ~
 form.timing.FINAL.atHour, form.timing.FINAL.atDay, form.timing.FINAL.atPm = "1", 0, false
 check("at before start", (F.problems(form, NOW, "schedule")[1] or ""):find("before the tournament") ~= nil)
 form.timing.FINAL = { start = "at", atDay = 1, atHour = "8", atMinute = "00", atPm = true }
+
+-- Its own check-in: sent only with a date and time, and opening after the start.
+form.timing.FINAL.checkInMinutes = 30
+check("check-in sent", F.payload(form).timetable.rounds.FINAL.checkInMinutes == 30)
+check("describe check-in", (F.describe_timing(form.timing.FINAL, form)):find("check%-in 30 min before") ~= nil, F.describe_timing(form.timing.FINAL, form))
+form.timing.SEMI.start = "manual"
+form.timing.SEMI.checkInMinutes = 30
+check("check-in needs a time", F.payload(form).timetable.rounds.SEMI.checkInMinutes == nil)
+form.timing.SEMI.start, form.timing.SEMI.checkInMinutes = nil, nil
+local start = F.payload(form).startsAt
+form.timing.FINAL = { start = "at", atDay = 0, atMinute = "30", checkInMinutes = 60 }
+local st = os.date("*t", math.floor(start / 1000))
+form.timing.FINAL.atHour = tostring(st.hour % 12 == 0 and 12 or st.hour % 12)
+form.timing.FINAL.atPm = st.hour >= 12
+check("check-in before start", table.concat(F.problems(form, NOW, "schedule"), "|"):find("check%-in can't open") ~= nil, table.concat(F.problems(form, NOW, "schedule"), "|"))
+-- In round order: the semifinals can't be after the final.
+form.timing.FINAL = { start = "at", atDay = 1, atHour = "8", atMinute = "00", atPm = true }
+form.timing.SEMI = { start = "at", atDay = 2, atHour = "8", atMinute = "00", atPm = true }
+check("out of order", table.concat(F.problems(form, NOW, "schedule"), "|"):find("round order") ~= nil)
+form.timing.SEMI = { play = "live", readyUpMinutes = 10, onward = true }
 
 -- Templates keep it.
 local loaded = T.to_form(T.from_form(form), NOW)

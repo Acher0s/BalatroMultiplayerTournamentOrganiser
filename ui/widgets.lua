@@ -18,6 +18,15 @@ local function TUI()
 	return PVP.TUI
 end
 
+-- A help text key -> its lines (one per \n), for the tooltips.
+function UI.lines(key)
+	local out = {}
+	for line in (TOM.T(key) .. "\n"):gmatch("([^\n]*)\n") do
+		out[#out + 1] = line
+	end
+	return out
+end
+
 -- A small "?" that explains something when hovered (Balatro's own tooltip
 -- popup). lines: short sentences, one per line.
 function UI.help(lines, title)
@@ -193,7 +202,7 @@ function UI.toggles(label, key, list, per_row, help)
 				{
 					n = G.UIT.C,
 					config = { align = "cm", minw = 0.95, minh = 0.42, r = 0.08, colour = on and G.C.BLUE or G.C.UI.BACKGROUND_INACTIVE, hover = true, shadow = true, button = "tom_toggle", ref_table = { key = key, value = entry[1] } },
-					nodes = { TUI().text(entry[2], 0.26, on and G.C.UI.TEXT_LIGHT or G.C.UI.TEXT_INACTIVE) },
+					nodes = { TUI().text(TOM.Form.text(entry[2]), 0.26, on and G.C.UI.TEXT_LIGHT or G.C.UI.TEXT_INACTIVE) },
 				},
 			},
 		}
@@ -236,7 +245,7 @@ function UI.switch(label, key, help)
 		{
 			n = G.UIT.C,
 			config = { align = "cm", minw = 1.6, minh = 0.45, r = 0.08, colour = on and G.C.GOLD or G.C.UI.BACKGROUND_INACTIVE, hover = true, shadow = true, button = "tom_switch", ref_table = { key = key } },
-			nodes = { TUI().text(on and "YES" or "NO", 0.3, on and G.C.BLACK or G.C.UI.TEXT_INACTIVE) },
+			nodes = { TUI().text(TOM.T(on and "k_tom_yes" or "k_tom_no"), 0.3, on and G.C.BLACK or G.C.UI.TEXT_INACTIVE) },
 		},
 	}, help)
 end
@@ -328,11 +337,11 @@ function UI.cocktail_rows(settings, after)
 	UI.cocktail_after = after
 	UI.cocktail_settings = settings
 	local summary = TOM.Cocktail.summary(settings.cocktail)
-	rows[#rows + 1] = UI.row("Cocktail", {
-		TUI().button("MIX", "tom_cocktail_open", nil, G.C.PURPLE, 1.4, 0.3),
+	rows[#rows + 1] = UI.row(TOM.T("k_tom_cocktail"), {
+		TUI().button(TOM.T("k_tom_mix"), "tom_cocktail_open", nil, G.C.PURPLE, 1.4, 0.3),
 		TUI().spacer(0.1),
-		TUI().text(summary or "Nothing mixed yet", TUI().SMALL, summary and G.C.GOLD or G.C.RED),
-	}, { "Which 1 to 3 decks the Cocktail", "plays at once, and its name." })
+		TUI().text(summary or TOM.T("k_tom_nothing_mixed"), TUI().SMALL, summary and G.C.GOLD or G.C.RED),
+	}, UI.lines("k_tom_help_cocktail"))
 	return rows
 end
 
@@ -348,5 +357,5 @@ function UI.error_text(err)
 	if type(err) == "table" then
 		err = err.message or err.error
 	end
-	return tostring(err or "Something went wrong")
+	return tostring(err or TOM.T("k_tom_went_wrong"))
 end

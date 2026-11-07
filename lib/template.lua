@@ -159,10 +159,10 @@ end
 -- at least 10 minutes away. Fields that don't fit are skipped.
 function T.to_form(template, now_ms)
 	if type(template) ~= "table" or template.kind ~= T.KIND or type(template.form) ~= "table" then
-		return nil, "That isn't a tournament template."
+		return nil, TOM.T("k_tom_not_a_template")
 	end
 	if type(template.version) ~= "number" or template.version > T.VERSION then
-		return nil, "That template is from a newer Tournament Organiser."
+		return nil, TOM.T("k_tom_template_too_new")
 	end
 	local form = F().new(now_ms)
 	local skipped = 0

@@ -19,6 +19,7 @@ local function load(path)
 	end
 end
 
+load("lib/text.lua")
 load("lib/form.lua")
 load("lib/template.lua")
 load("ui/widgets.lua")

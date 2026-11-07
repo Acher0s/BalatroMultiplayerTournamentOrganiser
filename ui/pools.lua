@@ -102,11 +102,11 @@ end
 
 local function presets_row()
 	return TUI().hbox({
-		TUI().text("PRESETS", TUI().SMALL, G.C.UI.TEXT_INACTIVE),
-		TUI().button("STANDARD", "tom_pool_preset", { name = "standard" }, G.C.UI.BACKGROUND_INACTIVE, 2.0, 0.3),
-		TUI().button("EXPANDED RANKED", "tom_pool_preset", { name = "expanded" }, G.C.UI.BACKGROUND_INACTIVE, 3.0, 0.3),
-		TUI().button("ALL", "tom_pool_preset", { name = "all" }, G.C.UI.BACKGROUND_INACTIVE, 1.2, 0.3),
-		TUI().button("NONE", "tom_pool_preset", { name = "none" }, G.C.UI.BACKGROUND_INACTIVE, 1.2, 0.3),
+		TUI().text(TOM.T("k_tom_presets"), TUI().SMALL, G.C.UI.TEXT_INACTIVE),
+		TUI().button(TOM.T("k_tom_standard"), "tom_pool_preset", { name = "standard" }, G.C.UI.BACKGROUND_INACTIVE, 2.0, 0.3),
+		TUI().button(TOM.T("k_tom_expanded_ranked"), "tom_pool_preset", { name = "expanded" }, G.C.UI.BACKGROUND_INACTIVE, 3.0, 0.3),
+		TUI().button(TOM.T("k_tom_all"), "tom_pool_preset", { name = "all" }, G.C.UI.BACKGROUND_INACTIVE, 1.2, 0.3),
+		TUI().button(TOM.T("k_tom_none"), "tom_pool_preset", { name = "none" }, G.C.UI.BACKGROUND_INACTIVE, 1.2, 0.3),
 	}, "cm", 0.04)
 end
 
@@ -151,8 +151,8 @@ local function deck_contents()
 	local s = open.settings
 	local chosen = set_of(s.poolDecks)
 	local rows = {
-		{ n = G.UIT.R, config = { align = "cm", padding = 0.08 }, nodes = { TUI().text("DECK POOL", 0.45, G.C.PURPLE) } },
-		{ n = G.UIT.R, config = { align = "cm", padding = 0.02 }, nodes = { TUI().text("The decks players ban and pick from.", TUI().SMALL, G.C.UI.TEXT_INACTIVE) } },
+		{ n = G.UIT.R, config = { align = "cm", padding = 0.08 }, nodes = { TUI().text(TOM.T("k_tom_deck_pool"), 0.45, G.C.PURPLE) } },
+		{ n = G.UIT.R, config = { align = "cm", padding = 0.02 }, nodes = { TUI().text(TOM.T("k_tom_the_decks_players_ban_and_pick_from"), TUI().SMALL, G.C.UI.TEXT_INACTIVE) } },
 	}
 	local buttons = {}
 	for _, key in ipairs(UI.decks()) do
@@ -164,7 +164,7 @@ local function deck_contents()
 	rows[#rows + 1] = presets_row()
 	-- Cocktails: items of the pool, each its own mix.
 	if UI.has_cocktail() then
-		rows[#rows + 1] = { n = G.UIT.R, config = { align = "cm", padding = 0.06 }, nodes = { TUI().text("COCKTAILS IN THE POOL", TUI().TEXT, G.C.GOLD) } }
+		rows[#rows + 1] = { n = G.UIT.R, config = { align = "cm", padding = 0.06 }, nodes = { TUI().text(TOM.T("k_tom_cocktails_in_the_pool"), TUI().TEXT, G.C.GOLD) } }
 		local cocktails = s.poolCocktails or {}
 		for i, c in ipairs(cocktails) do
 			local summary = TOM.Cocktail.summary(c)
@@ -173,21 +173,21 @@ local function deck_contents()
 				config = { align = "cm", padding = 0.02 },
 				nodes = {
 					{ n = G.UIT.C, config = { align = "cl", minw = 7.4 }, nodes = { TUI().text(i .. ".  " .. (summary or "Nothing mixed yet"), TUI().SMALL, summary and G.C.UI.TEXT_LIGHT or G.C.RED) } },
-					{ n = G.UIT.C, config = { align = "cm", padding = 0.02 }, nodes = { TUI().button("MIX", "tom_pool_mix", { index = i }, G.C.PURPLE, 1.2, 0.28) } },
-					{ n = G.UIT.C, config = { align = "cm", padding = 0.02 }, nodes = { TUI().button("REMOVE", "tom_pool_remove", { index = i }, G.C.RED, 1.5, 0.28) } },
+					{ n = G.UIT.C, config = { align = "cm", padding = 0.02 }, nodes = { TUI().button(TOM.T("k_tom_mix"), "tom_pool_mix", { index = i }, G.C.PURPLE, 1.2, 0.28) } },
+					{ n = G.UIT.C, config = { align = "cm", padding = 0.02 }, nodes = { TUI().button(TOM.T("k_tom_remove"), "tom_pool_remove", { index = i }, G.C.RED, 1.5, 0.28) } },
 				},
 			}
 		end
 		if #cocktails == 0 then
-			rows[#rows + 1] = { n = G.UIT.R, config = { align = "cm" }, nodes = { TUI().text("None: add one to put a Cocktail in the pool.", TUI().SMALL, G.C.UI.TEXT_INACTIVE) } }
+			rows[#rows + 1] = { n = G.UIT.R, config = { align = "cm" }, nodes = { TUI().text(TOM.T("k_tom_none_add_one_to_put_a_cocktail_in_th"), TUI().SMALL, G.C.UI.TEXT_INACTIVE) } }
 		end
 		if #cocktails < COCKTAILS_MAX then
-			rows[#rows + 1] = TUI().hbox({ TUI().button("ADD COCKTAIL", "tom_pool_add", nil, G.C.PURPLE, 2.8, 0.3) }, "cm", 0.04)
+			rows[#rows + 1] = TUI().hbox({ TUI().button(TOM.T("k_tom_add_cocktail"), "tom_pool_add", nil, G.C.PURPLE, 2.8, 0.3) }, "cm", 0.04)
 		end
 	end
 	local problem = F.pool_problem({ poolDecks = s.poolDecks, poolCocktails = s.poolCocktails, draftStakes = { 1 } })
 	rows[#rows + 1] = { n = G.UIT.R, config = { align = "cm", padding = 0.04 }, nodes = { TUI().text(problem or F.pool_text(s), TUI().TEXT, problem and G.C.RED or G.C.GOLD) } }
-	rows[#rows + 1] = TUI().hbox({ TUI().button("DONE", "tom_pool_done", nil, G.C.GREEN, 2.2) }, "cm", 0.06)
+	rows[#rows + 1] = TUI().hbox({ TUI().button(TOM.T("k_tom_done"), "tom_pool_done", nil, G.C.GREEN, 2.2) }, "cm", 0.06)
 	return rows
 end
 
@@ -195,12 +195,12 @@ local function stake_contents()
 	local s = open.settings
 	local chosen = set_of(s.draftStakes)
 	local rows = {
-		{ n = G.UIT.R, config = { align = "cm", padding = 0.08 }, nodes = { TUI().text("STAKE POOL", 0.45, G.C.PURPLE) } },
-		{ n = G.UIT.R, config = { align = "cm", padding = 0.02 }, nodes = { TUI().text("Each deck in the pool comes with one of these stakes.", TUI().SMALL, G.C.UI.TEXT_INACTIVE) } },
+		{ n = G.UIT.R, config = { align = "cm", padding = 0.08 }, nodes = { TUI().text(TOM.T("k_tom_stake_pool"), 0.45, G.C.PURPLE) } },
+		{ n = G.UIT.R, config = { align = "cm", padding = 0.02 }, nodes = { TUI().text(TOM.T("k_tom_each_deck_in_the_pool_comes_with_one"), TUI().SMALL, G.C.UI.TEXT_INACTIVE) } },
 	}
 	local buttons = {}
 	for _, entry in ipairs(UI.stakes()) do
-		buttons[#buttons + 1] = toggle_button(entry[2], chosen[entry[1]], "tom_pool_stake", { index = entry[1] }, 1.8)
+		buttons[#buttons + 1] = toggle_button(TOM.Form.text(entry[2]), chosen[entry[1]], "tom_pool_stake", { index = entry[1] }, 1.8)
 	end
 	for _, r in ipairs(grid(buttons, 6)) do
 		rows[#rows + 1] = r
@@ -208,7 +208,7 @@ local function stake_contents()
 	rows[#rows + 1] = presets_row()
 	local n = #(s.draftStakes or {})
 	rows[#rows + 1] = { n = G.UIT.R, config = { align = "cm", padding = 0.04 }, nodes = { TUI().text(n == 0 and "Pick at least one stake." or (n .. " stake" .. (n == 1 and "" or "s")), TUI().TEXT, n == 0 and G.C.RED or G.C.GOLD) } }
-	rows[#rows + 1] = TUI().hbox({ TUI().button("DONE", "tom_pool_done", nil, G.C.GREEN, 2.2) }, "cm", 0.06)
+	rows[#rows + 1] = TUI().hbox({ TUI().button(TOM.T("k_tom_done"), "tom_pool_done", nil, G.C.GREEN, 2.2) }, "cm", 0.06)
 	return rows
 end
 
@@ -252,12 +252,12 @@ end
 function P.row(settings, after)
 	P.row_settings, P.row_after = settings, after
 	local problem = F.pool_problem(settings)
-	return UI.row("Pool", {
-		TUI().button("DECK POOL", "tom_pool_open_decks", nil, G.C.BLUE, 2.2, 0.3),
-		TUI().button("STAKE POOL", "tom_pool_open_stakes", nil, G.C.BLUE, 2.2, 0.3),
+	return UI.row(TOM.T("k_tom_pool"), {
+		TUI().button(TOM.T("k_tom_deck_pool"), "tom_pool_open_decks", nil, G.C.BLUE, 2.2, 0.3),
+		TUI().button(TOM.T("k_tom_stake_pool"), "tom_pool_open_stakes", nil, G.C.BLUE, 2.2, 0.3),
 		TUI().spacer(0.1),
-		TUI().text(problem and "Fix the pool" or F.pool_text(settings), TUI().SMALL, problem and G.C.RED or G.C.GOLD),
-	}, { "What players ban and pick from:", "the decks (and Cocktails) and", "the stakes they can come with." })
+		TUI().text(problem and TOM.T("k_tom_fix_the_pool") or F.pool_text(settings), TUI().SMALL, problem and G.C.RED or G.C.GOLD),
+	}, UI.lines("k_tom_help_pool"))
 end
 
 G.FUNCS.tom_pool_open_decks = function()

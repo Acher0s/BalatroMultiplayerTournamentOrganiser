@@ -1,6 +1,7 @@
 -- Run from the repo root: lua5.4 tests/edit_test.lua
 -- lib/form.lua: an existing tournament back into the wizard's form, and
 -- what an edit sends (only what changed).
+dofile("lib/text.lua")
 dofile("lib/form.lua")
 local F = TOM.Form
 
