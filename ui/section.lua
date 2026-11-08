@@ -187,8 +187,54 @@ G.FUNCS.tom_section_coorg_join = function()
 	end)
 end
 
+-- NEW TOURNAMENT asks the server first: while creation is restricted, only
+-- privileged players may create, and the rest are told so before the wizard.
+-- Without an answer the wizard opens anyway (CREATE is checked again).
+local asking = false
+
+local function create_locked()
+	local TUI = PVP.TUI
+	G.FUNCS.overlay_menu({
+		definition = create_UIBox_generic_options({
+			no_back = true,
+			contents = {
+				{
+					n = G.UIT.R,
+					config = { align = "cm", padding = 0.15 },
+					nodes = {
+						{
+							n = G.UIT.C,
+							config = { align = "cm", minw = 7.6 },
+							nodes = {
+								{ n = G.UIT.R, config = { align = "cm", padding = 0.06 }, nodes = { TUI.text("NEW TOURNAMENT", 0.45, G.C.PURPLE) } },
+								{ n = G.UIT.R, config = { align = "cm", padding = 0.1 }, nodes = { TUI.text(TOM.T("k_tom_create_locked"), 0.35, G.C.UI.TEXT_LIGHT) } },
+								TUI.hbox({ TUI.button(TOM.T("k_tom_ok"), "tom_section_locked_close", nil, G.C.ORANGE, 2.2) }, "cm", 0.08),
+							},
+						},
+					},
+				},
+			},
+		}),
+	})
+end
+
+G.FUNCS.tom_section_locked_close = function()
+	G.FUNCS.exit_overlay_menu()
+end
+
 G.FUNCS.tom_section_new = function()
-	TOM.open_create(false)
+	if asking then
+		return
+	end
+	asking = true
+	PVP.Tournaments.call("tournament_can_create", {}, function(err, data)
+		asking = false
+		if not err and data and data.canCreate == false then
+			create_locked()
+		else
+			TOM.open_create(false)
+		end
+	end)
 end
 
 G.FUNCS.tom_section_manage = function(e)

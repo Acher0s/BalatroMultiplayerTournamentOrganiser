@@ -54,6 +54,7 @@ On a Dev server, MANAGE can also fill a tournament with bots for testing.
 
 Set by the server:
 
+- For now, only players with the `tournament_create` (or `tournament_official`) privilege can create tournaments. Admins can lift this on the website's admin panel. Without the privilege, NEW TOURNAMENT says so. Running a tournament you already organise or co-organise never needs it.
 - You can create at most 10 tournaments a day and run at most 5 at once.
 - **OFFICIAL** tournaments (listed first in Browse, with a gold badge) need the `tournament_official` privilege, which admins grant on the website's admin panel.
 - Moderators can close any tournament from the website's admin panel; its players see the reason.
