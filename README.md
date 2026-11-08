@@ -22,8 +22,8 @@ Extract the mod into its own folder in your Balatro `Mods` directory, next to Mu
 |---|---|
 | **BASICS** | Name, description, public (listed in Browse) or private (invite code only), start date and time (your local time), player limit, check-in before the start, whether players must be on their ranked profile, and OFFICIAL (only with the official privilege, below). |
 | **FORMAT** | Single or double elimination (grand final reset on or off), round robin (group size) or Swiss (number of rounds), and seeding: by rating, random, or your own order. |
-| **GAMES** | Game mode, ruleset, series length (Bo1, Bo3...), and the decks: one deck and stake for everyone, or a ban-and-pick pool of decks, stakes and Cocktails (mixed decks). |
-| **ROUNDS** | Different games for some rounds, say Bo5 and a locked deck for the final. Rounds are numbered in playing order or named (Final, Semifinals, Winners/Losers final). |
+| **GAMES** | Ruleset (Major League, Balanced, Expanded, Small World, Vanilla or Experimental), series length (Bo1, Bo3...), and the decks: one deck and stake for everyone, or a ban-and-pick pool of decks, stakes and Cocktails (mixed decks). |
+| **ROUNDS** | Different games for some rounds, say another ruleset or Bo5 and a locked deck for the final. Rounds are numbered in playing order or named (Final, Semifinals, Winners/Losers final). |
 | **SCHEDULE** | The timetable: a live event (players ready up when their match opens), rounds you start by hand, or a league (play each round by a deadline). Then round by round: a break before a round, a round you start by hand, a round that continues at a date and time (with its own check-in), or a different way of playing. A preview shows the bracket for any number of players. |
 | **REVIEW** | Everything on one page. **CREATE** saves it as a draft or opens it for sign-ups straight away. |
 

@@ -190,7 +190,6 @@ end
 
 local function editor_lists()
 	return {
-		gameMode = with_same(ctx.lists.gameMode),
 		ruleset = with_same(ctx.lists.ruleset),
 		bestOf = with_same(F.CHOICES.bestOf),
 		deckKind = { SAME, { "locked", "k_tom_opt_one_deck_for_everyone" }, { "draft", "k_tom_opt_ban_and_pick_from_a_pool" } },
@@ -246,7 +245,6 @@ local function editor_contents()
 	}
 	local rows = {
 		{ n = G.UIT.R, config = { align = "cm", padding = 0.08 }, nodes = { TUI().text(string.upper(editing.title), 0.45, G.C.PURPLE) } },
-		UI.choice(TOM.T("k_tom_game_type"), "gameMode", "gameMode"),
 		UI.choice(TOM.T("k_tom_ruleset"), "ruleset", "ruleset"),
 		UI.choice(TOM.T("k_tom_series"), "bestOf", "bestOf"),
 		UI.choice(TOM.T("k_tom_decks_stakes"), "deckKind", "deckKind", UI.lines("k_tom_help_same_as_defaults_what_the_games_step")),

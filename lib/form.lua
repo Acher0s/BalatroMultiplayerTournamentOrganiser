@@ -222,7 +222,9 @@ function F.join_description(lines, count)
 end
 
 -- The game types a 1v1 bracket can play (key -> label comes from PvP).
-F.GAME_MODES = { "pvp_nemesis", "pvp_smallworld", "pvp_royale", "pvp_experimental" }
+-- Every match is 1v1, which PvP plays the same in each of its game modes, so
+-- tournaments always use Nemesis; the ruleset is what organisers choose.
+F.GAME_MODE = "pvp_nemesis"
 
 -- The start as the player types it, in their local time: a date (from the
 -- calendar), an hour 1-12, minutes and AM/PM. The hour and minutes are text
@@ -313,7 +315,6 @@ function F.new(now_ms)
 		groupSize = false,
 		swissRounds = false,
 		seeding = "rating",
-		gameMode = "pvp_nemesis",
 		ruleset = "ruleset_mp_balanced",
 		bestOf = 3,
 		-- Ban and pick from every deck on White to Gold, like matchmaking.
@@ -472,7 +473,7 @@ function F.round_override(round, decks)
 		return nil
 	end
 	local out, any = {}, false
-	for _, key in ipairs({ "gameMode", "ruleset", "bestOf" }) do
+	for _, key in ipairs({ "ruleset", "bestOf" }) do
 		if round[key] then
 			out[key] = round[key]
 			any = true
@@ -502,7 +503,6 @@ end
 -- name (each only changes what it sets), as the form's own fields.
 function F.effective(form, plan_round)
 	local out = {
-		gameMode = form.gameMode,
 		ruleset = form.ruleset,
 		bestOf = form.bestOf,
 		deckKind = form.deckKind,
@@ -521,7 +521,7 @@ function F.effective(form, plan_round)
 	for i = 1, #layers + 1 do
 		local layer = layers[i]
 		if layer then
-			for _, key in ipairs({ "gameMode", "ruleset", "bestOf" }) do
+			for _, key in ipairs({ "ruleset", "bestOf" }) do
 				if layer[key] then
 					out[key] = layer[key]
 				end
@@ -538,15 +538,12 @@ end
 
 -- One line for a round's settings: the parts that differ from the defaults
 -- (everything with `all`). names: lists of { value, label } to name keys with
--- (gameMode, ruleset, deck, stake).
+-- (ruleset, deck, stake).
 function F.describe(settings, form, names, all)
 	names = names or {}
 	local parts = {}
 	local function differs(key)
 		return all or settings[key] ~= form[key]
-	end
-	if differs("gameMode") then
-		parts[#parts + 1] = F.label(settings, "gameMode", names.gameMode)
 	end
 	if differs("ruleset") then
 		parts[#parts + 1] = F.label(settings, "ruleset", names.ruleset)
@@ -837,13 +834,12 @@ function F.from_view(view, now_ms, all)
 	form.swissRounds = fo.swissRounds or false
 	form.seeding = view.seeding and view.seeding.kind or form.seeding
 	local d = view.rounds and view.rounds.defaults or {}
-	form.gameMode = d.gameMode or form.gameMode
 	form.ruleset = d.ruleset or form.ruleset
 	form.bestOf = d.bestOf or form.bestOf
 	deck_into(form, d.deck, all)
 	form.rounds = {}
 	for key, o in pairs(view.rounds and view.rounds.overrides or {}) do
-		local round = { gameMode = o.gameMode, ruleset = o.ruleset, bestOf = o.bestOf }
+		local round = { ruleset = o.ruleset, bestOf = o.bestOf }
 		deck_into(round, o.deck, all)
 		form.rounds[key] = round
 	end
@@ -1008,7 +1004,7 @@ end
 
 -- The tournament_create payload. decks: the deck keys for a draft pool.
 function F.payload(form, decks)
-	local defaults = { gameMode = form.gameMode, ruleset = form.ruleset, bestOf = form.bestOf }
+	local defaults = { gameMode = F.GAME_MODE, ruleset = form.ruleset, bestOf = form.bestOf }
 	defaults.deck = deck_payload(form, decks)
 	local format_options = {}
 	if form.format == "double_elim" then

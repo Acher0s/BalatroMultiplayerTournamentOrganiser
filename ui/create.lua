@@ -63,14 +63,8 @@ end
 
 -- Lists that come from the game or PvP (not fixed in lib/form.lua).
 local function make_lists()
-	local modes = {}
-	for _, key in ipairs(F.GAME_MODES) do
-		if PVP.PVP_GAMEMODES and PVP.PVP_GAMEMODES[key] then
-			modes[#modes + 1] = { key, TUI().game_type(key) }
-		end
-	end
 	local rulesets = {}
-	local order = { "BALANCED", "VANILLA", "EXPANDED", "SMALLWORLD", "EXPERIMENTAL", "MAJORLEAGUE" }
+	local order = { "MAJORLEAGUE", "BALANCED", "EXPANDED", "SMALLWORLD", "VANILLA", "EXPERIMENTAL" }
 	for _, name in ipairs(order) do
 		local key = PVP.RulesetKey and PVP.RulesetKey[name]
 		if key and MPAPI.Rulesets and MPAPI.Rulesets[key] then
@@ -84,7 +78,7 @@ local function make_lists()
 	if UI.has_cocktail() then
 		decks[#decks + 1] = { F.COCKTAIL, UI.deck_name(F.COCKTAIL) }
 	end
-	return { gameMode = modes, ruleset = rulesets, deck = decks, stake = UI.stakes() }
+	return { ruleset = rulesets, deck = decks, stake = UI.stakes() }
 end
 
 local PRESET_NOTES = {
@@ -172,7 +166,6 @@ local function step_rows(key)
 		end
 		add(UI.choice(TOM.T("k_tom_seeding"), "seeding", nil, UI.lines("k_tom_help_who_is_seed_1_2_3_top_seeds_meet_eac")))
 	elseif key == "games" then
-		add(UI.choice(TOM.T("k_tom_game_type"), "gameMode", "gameMode"))
 		add(UI.choice(TOM.T("k_tom_ruleset"), "ruleset", "ruleset"))
 		add(UI.choice(TOM.T("k_tom_series"), "bestOf", nil, UI.lines("k_tom_help_how_many_games_a_match_has_best_of_3")))
 		add(UI.choice(TOM.T("k_tom_decks_stakes"), "deckKind", nil, UI.lines("k_tom_help_one_deck_everyone_plays_the_same_dec")))
@@ -261,7 +254,7 @@ local function step_rows(key)
 			format = TOM.T("k_tom_list2", format, F.count(form.swissRounds, "k_tom_n_rounds"))
 		end
 		line(TOM.T("k_tom_format"), TOM.T("k_tom_review_format", format, F.label(form, "seeding"):lower()))
-		line(TOM.T("k_tom_games"), TOM.T("k_tom_list2", TOM.T("k_tom_list2", F.label(form, "gameMode", lists.gameMode), F.label(form, "ruleset", lists.ruleset)), F.label(form, "bestOf"):lower()))
+		line(TOM.T("k_tom_games"), TOM.T("k_tom_list2", F.label(form, "ruleset", lists.ruleset), F.label(form, "bestOf"):lower()))
 		local decks = F.label(form, "deckKind")
 		if F.uses(form, "deck") then
 			decks = TOM.T("k_tom_deck_on_stake", F.label(form, "deck", lists.deck), F.label(form, "stake", lists.stake))

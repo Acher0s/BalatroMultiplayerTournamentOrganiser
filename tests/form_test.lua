@@ -84,6 +84,9 @@ form.requireRanked = true
 check("ranked on", F.payload(form).requireRanked == true)
 form.requireRanked = false
 check("defaults", p.rounds.defaults.gameMode == "pvp_nemesis" and p.rounds.defaults.bestOf == 3)
+-- Matches are 1v1: always Nemesis, and a round only changes the ruleset.
+local o = F.round_override({ gameMode = "pvp_royale", ruleset = "ruleset_mp_smallworld" }, {})
+check("no game mode per round", o.gameMode == nil and o.ruleset == "ruleset_mp_smallworld")
 -- By default: ban and pick from every deck on White to Gold.
 check("default decks", p.rounds.defaults.deck.kind == "draft" and #p.rounds.defaults.deck.stakes == 8)
 check("live event options", p.timetable.preset == "live_event" and p.timetable.options.readyUpMinutes == 10 and p.timetable.options.breakMinutes == 0)

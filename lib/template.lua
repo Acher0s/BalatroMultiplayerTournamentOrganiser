@@ -42,7 +42,6 @@ local FIELDS = {
 	groupSize = { "number", "false" },
 	swissRounds = { "number", "false" },
 	seeding = { "string" },
-	gameMode = { "string" },
 	ruleset = { "string" },
 	bestOf = { "number" },
 	deckKind = { "string" },
@@ -136,7 +135,7 @@ local function clean_timing(t)
 end
 
 -- A round as saved: only the fields a round has.
-local ROUND_FIELDS = { "gameMode", "ruleset", "bestOf", "deckKind", "deck", "stake", "draftStakes", "banOrder", "cocktail", "poolDecks", "poolCocktails" }
+local ROUND_FIELDS = { "ruleset", "bestOf", "deckKind", "deck", "stake", "draftStakes", "banOrder", "cocktail", "poolDecks", "poolCocktails" }
 
 local function clean_round(r)
 	if type(r) ~= "table" then

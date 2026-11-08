@@ -99,7 +99,6 @@ return {
 			k_tom_expanded_ranked = "EXPANDED RANKED",
 			k_tom_fix_the_pool = "Fix the pool",
 			k_tom_format = "Format",
-			k_tom_game_type = "Game type",
 			k_tom_games = "Games",
 			k_tom_grand_final_reset = "Grand final reset",
 			k_tom_groups = "Groups",

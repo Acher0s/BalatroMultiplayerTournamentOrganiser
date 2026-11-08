@@ -25,7 +25,7 @@ form.deckKind = "draft"
 form.draftStakes = { 1, 5, 11 }
 form.poolDecks = { "b_red", "b_mp_orange" }
 form.poolCocktails = { { name = "Mix", decks = { "b_black", "b_blue" } } }
-form.rounds = { R1 = { deckKind = "locked", deck = "b_mp_orange", stake = 4 }, FINAL = { bestOf = 5, gameMode = false } }
+form.rounds = { R1 = { deckKind = "locked", deck = "b_mp_orange", stake = 4 }, FINAL = { bestOf = 5, ruleset = false } }
 form.hour, form.minute, form.pm = "8", "30", true
 form.previewPlayers = 8
 
@@ -40,7 +40,7 @@ local loaded, skipped = T.to_form(t, NOW)
 check("loads", loaded ~= nil and skipped == 0, skipped)
 check("settings", loaded.name == "Friday Weekly" and loaded.format == "double_elim" and loaded.maxPlayers == 32 and loaded.checkInMinutes == false)
 check("pool", loaded.poolDecks[2] == "b_mp_orange" and loaded.draftStakes[3] == 11 and loaded.poolCocktails[1].decks[2] == "b_blue")
-check("rounds", loaded.rounds.R1.deck == "b_mp_orange" and loaded.rounds.FINAL.bestOf == 5 and loaded.rounds.FINAL.gameMode == false)
+check("rounds", loaded.rounds.R1.deck == "b_mp_orange" and loaded.rounds.FINAL.bestOf == 5 and loaded.rounds.FINAL.ruleset == false)
 -- 8:30 PM today (it's 3 PM).
 local at = os.date("*t", math.floor(loaded.startsAt / 1000))
 check("time today", at.day == 10 and at.hour == 20 and at.min == 30, at.day .. " " .. at.hour .. ":" .. at.min)
